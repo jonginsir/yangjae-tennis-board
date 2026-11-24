@@ -96,11 +96,11 @@ main{padding:16px 16px 40px}
 .court .hl.my{color:var(--line)}
 .court .hl.my::before{content:"";position:absolute;right:1px;top:3px;bottom:3px;width:3px;background:var(--ball);border-radius:2px}
 .cell{min-height:0;position:relative;overflow:hidden;border-right:2px solid rgba(255,255,255,.9);border-bottom:1px solid rgba(255,255,255,.2);display:grid;place-items:center}
-.cell.first{border-left:2px solid rgba(255,255,255,.9)}
-.cell.top{border-top:2px solid rgba(255,255,255,.9)}
-.cell.bottom{border-bottom:2px solid rgba(255,255,255,.9)}
-.cell.gap{border-right:2px solid rgba(255,255,255,.9);margin-right:8px}
-.cell.gap + .cell{border-left:2px solid rgba(255,255,255,.9)}
+.cell.cf{border-left:2px solid rgba(255,255,255,.9)}
+.cell.rt{border-top:2px solid rgba(255,255,255,.9)}
+.cell.rb{border-bottom:2px solid rgba(255,255,255,.9)}
+.cell.cg{border-right:2px solid rgba(255,255,255,.9);margin-right:8px}
+.cell.cg + .cell{border-left:2px solid rgba(255,255,255,.9)}
 .cell.my{background-color:rgba(255,255,255,.07)}
 .s-booked::after{content:"";width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.38)}
 .s-off{background:var(--court-deep)}
@@ -297,7 +297,7 @@ function courtGrid(cols,week){
       const cell=(D.dates[c.date]||{})[c.court];
       const s=!cell||cell.error?"error":(cell.slots[h]||"off");
       const gap=week&&i<n-1&&cols[i+1].date!==c.date;
-      const cls=["cell","s-"+s,i===0?"first":"",h===lo?"top":"",h===hi?"bottom":"",gap?"gap":"",isMine(c.date,h)?"my":""].join(" ");
+      const cls=["cell","s-"+s,i===0?"cf":"",h===lo?"rt":"",h===hi?"rb":"",gap?"cg":"",isMine(c.date,h)?"my":""].join(" ");
       const lab=`${dLabel(c.date)} ${cName(c.court)} ${pad(h)}시 ${ST[s]}`;
       html+= s==="open"
         ? `<div class="${cls}" role="cell"><a href="${bookUrl(cell,c.date)}" target="_blank" rel="noopener" aria-label="${lab}, 네이버에서 예약" title="${lab}"></a></div>`
