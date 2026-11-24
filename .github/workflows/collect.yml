@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -34,6 +34,13 @@ jobs:
         run: |
           mkdir -p site && cp -r web/. site/
           python -m collector.run
+      - name: 최신 data.json을 data 브랜치에도 보관 (점검용)
+        run: |
+          cd site && rm -rf .git && git init -q -b data
+          git config user.name github-actions && git config user.email actions@github.com
+          git add data.json && git commit -qm "data snapshot"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" data
+          rm -rf .git
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
