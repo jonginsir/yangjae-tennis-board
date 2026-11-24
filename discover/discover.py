@@ -35,7 +35,9 @@ with sync_playwright() as p:
     print("biz status", r.status if r else None)
     page.screenshot(path=str(OUT / "biz.png"), full_page=True)
     (OUT / "biz.html").write_text(page.content(), encoding="utf-8")
-    links = sorted({a for a in page.eval_on_selector_all("a[href*='/items/']", "els => els.map(e => e.href)")})
+    page.wait_for_timeout(3000)
+    links = sorted({a for a in page.eval_on_selector_all("a", "els => els.map(e => e.href)") if "/items/" in a})
+    (OUT / "biz.txt").write_text(page.inner_text("body"), encoding="utf-8")
     (OUT / "item_links.json").write_text(json.dumps(links, ensure_ascii=False, indent=1))
     print("item links", len(links))
     for i, link in enumerate(links[:6]):
