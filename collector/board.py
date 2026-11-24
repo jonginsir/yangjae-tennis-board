@@ -51,6 +51,13 @@ def build(items_meta: list[dict], schedules: dict, now: datetime) -> dict:
                 it["court"], {"slots": {}, "checkedAt": checked, "itemId": it["id"],
                               "notyetUntil": it["opens"].isoformat(timespec="minutes")})
             cell["slots"][str(hour)] = classify(slot, now, it["opens"])
+        # 조회는 성공했는데 그 날짜 칸이 아예 없으면: 예약을 받지 않는 날(조회 실패 아님)
+        d = it["start"]
+        while d <= it["end"]:
+            key = d.strftime("%Y-%m-%d")
+            dates.setdefault(key, {}).setdefault(it["court"], {
+                "slots": {}, "closedDay": True, "checkedAt": checked, "itemId": it["id"]})
+            d += timedelta(days=1)
     return {
         "generatedAt": now.isoformat(timespec="seconds"),
         "bizUrl": BIZ_URL,

@@ -318,11 +318,13 @@ function renderTable(){
   const total=shown.reduce((a,d)=>a+dayInfo(d).open,0);
   const title=week?`${dLabel(shown[0])} – ${dLabel(shown[shown.length-1])}`:dLabel(state.day);
   const errs=[...new Set(cols.filter(c=>(D.dates[c.date]||{})[c.court]?.error).map(c=>cName(c.court)))];
+  const closed=[...new Set(cols.filter(c=>(D.dates[c.date]||{})[c.court]?.closedDay).map(c=>week?`${dLabel(c.date)} ${cName(c.court)}`:cName(c.court)))];
   const ny=cols.map(c=>(D.dates[c.date]||{})[c.court]).find(cell=>cell&&cell.slots&&Object.values(cell.slots).includes("notyet"));
   $("#view").innerHTML=`<div class="days" role="group" aria-label="날짜">${strip}</div>
     <section class="board"><div class="bh"><h3>${title}</h3><small>${total?`예약 가능 <b>${total}칸</b>`:"예약 가능한 칸 없음"}</small></div>
     ${courtGrid(cols,week)}${legend()}
     ${ny?`<p class="note">${fmtOpen(ny.notyetUntil)}에 예약이 열려요(공지 기준, 바뀔 수 있음).</p>`:""}
+    ${closed.length?`<p class="note">${closed.join(", ")}은(는) 이날 예약을 받지 않아요.</p>`:""}
     ${errs.length?`<div class="err">${errs.join(", ")}은(는) 이번 수집에서 확인하지 못했어요. 다음 갱신 때 다시 확인해요.</div>`:""}</section>`;
   $$(".day").forEach(b=>b.onclick=()=>{state.day=b.dataset.day;renderTable()});
   document.querySelector('.day[aria-pressed="true"]')?.scrollIntoView({inline:"center",block:"nearest"});

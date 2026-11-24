@@ -95,3 +95,11 @@ def test_alert_text_is_capped():
     text = alert_text(lines, {}, "B", "N")
     assert len(text) < 4096 and "외 95칸 더 있어요" in text
     assert alert_text([], {}, "B", "N") is None
+
+
+def test_missing_day_in_successful_response_is_closed_not_error():
+    """네이버가 정상 응답했는데 특정 날짜(예: C코트 월·금)에 칸이 없으면 '운영 안 함'이지 '확인 실패'가 아니다."""
+    slots = [x for x in load("sched_11A.json") if not x["unitStartTime"].startswith("2026-11-27")]
+    data = build(_meta(["8073288"]), {"8073288": slots}, NOW)
+    cell = data["dates"]["2026-11-27"]["A"]
+    assert cell.get("closedDay") and cell["slots"] == {} and "error" not in cell
