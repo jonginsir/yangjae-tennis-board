@@ -5,189 +5,256 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>양재 테니스장 빈자리</title>
 <meta name="theme-color" content="#1F4E8C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="양재 빈자리">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root{
-  --court:#1F4E8C; --court-deep:#163A69; --line:#FFFFFF; --ground:#EEF3F9;
-  --ball:#DCF24B; --ball-ink:#2B3A00; --booked:#B9C5D3; --ink:#14243A; --muted:#5A6B82;
-  --hair:#D5DFEA; --warn:#F2B84B;
-  --hatch:repeating-linear-gradient(135deg,#DCE6F2 0 4px,#F4F7FB 4px 8px);
-  --r:10px;
+  --court:#1F4E8C; --court-deep:#173F73; --line:#FFFFFF;
+  --ground:#EEF3F9; --paper:#FFFFFF; --ball:#DCF24B; --ball-ink:#273500;
+  --ink:#14243A; --muted:#5A6B82; --hair:#D7E0EB; --warn:#F2B84B;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--ground);color:var(--ink);
   font-family:"Pretendard Variable",Pretendard,system-ui,-apple-system,sans-serif;
-  font-feature-settings:"tnum";line-height:1.5}
+  font-feature-settings:"tnum";line-height:1.5;-webkit-font-smoothing:antialiased}
 a{color:inherit}
-button{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--court);outline-offset:2px;border-radius:6px}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--ball);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1040px;margin:0 auto}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* ── 상단: 코트 블루 띠 ─────────────────────── */
-.top{background:var(--court);color:var(--line);padding:20px 16px 18px;
-  padding-top:max(20px,env(safe-area-inset-top))}
-.wrap{max-width:920px;margin:0 auto}
-.top h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
-.top .meta{margin-top:4px;font-size:13px;color:#C9D7EA}
-.top .meta a{color:var(--line);text-underline-offset:3px}
+/* 상단 */
+.top{background:var(--court);color:var(--line);padding:16px 16px 18px;padding-top:max(16px,env(safe-area-inset-top));position:relative;overflow:hidden}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--line);opacity:.9}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-size:14px;font-weight:600;color:#C9D7EA;margin:0;letter-spacing:-.01em}
+.naver{flex:0 0 auto;font-size:13px;font-weight:700;text-decoration:none;border:1.5px solid rgba(255,255,255,.55);border-radius:999px;padding:5px 12px}
+.naver:hover{background:rgba(255,255,255,.12)}
+.headline{margin:10px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.25}
+.headline em{font-style:normal;color:var(--ball)}
+.headline .zero{color:#A9BEDB}
+.meta{font-size:12.5px;color:#BFD0E6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stale{margin-top:10px;background:var(--warn);color:#3A2600;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:600}
-
-/* 가장 빠른 빈자리: 이 페이지에서 유일하게 튀는 요소 */
-.soon{margin-top:16px}
-.soon h2{margin:0 0 8px;font-size:14px;font-weight:600;color:#DCE7F5}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.soonhead{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.soonhead h2{margin:0;font-size:13px;font-weight:600;color:#DCE7F5}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#DCE7F5;cursor:pointer;background:none;border:0;padding:2px 0}
+.toggle[hidden]{display:none}
+.toggle .sw{width:30px;height:18px;border-radius:999px;background:rgba(255,255,255,.25);position:relative}
+.toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff}
+.toggle[aria-pressed="true"] .sw{background:var(--ball)}
+.toggle[aria-pressed="true"] .sw::after{transform:translateX(12px);background:var(--court)}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-decoration:none;
-  background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:7px 14px 7px 12px;
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
-.chip b{font-size:15px;font-weight:800;letter-spacing:-.01em}
-.chip span{font-size:12px;font-weight:600;opacity:.8}
-.none{font-size:14px;color:#DCE7F5;padding:6px 0}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:9px;text-decoration:none;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:6px 14px 6px 6px}
+.chip .b{width:30px;height:30px;border-radius:50%;background:var(--court);color:var(--ball);display:grid;place-items:center;font-size:13px;font-weight:800}
+.chip strong{display:block;font-size:14.5px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.chip small{display:block;font-size:11.5px;font-weight:600;opacity:.75;line-height:1.2}
+.none{font-size:13.5px;color:#DCE7F5;padding:4px 0 2px}
 
-/* ── 조작부 ─────────────────────────────── */
-.bar{position:sticky;top:0;z-index:5;background:var(--ground);border-bottom:1px solid var(--hair)}
-.bar .wrap{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 16px;flex-wrap:wrap}
-.seg{display:inline-flex;background:#DDE6F1;border-radius:999px;padding:3px}
-.seg button{border:0;background:transparent;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--line);color:var(--court);box-shadow:0 1px 2px rgba(20,36,58,.15)}
-
-main{padding:14px 16px 48px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:2px 0 14px}
-.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-3px;margin-right:5px}
+/* 조작부 */
+.bar{position:sticky;top:0;z-index:5;background:rgba(238,243,249,.92);backdrop-filter:saturate(1.4) blur(8px);-webkit-backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--hair)}
+.bar .wrap{display:flex;gap:8px;align-items:center;padding:10px 16px;flex-wrap:wrap}
+.seg{display:inline-flex;background:#DCE5F0;border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 13px;border-radius:999px;font-size:13.5px;font-weight:650;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--paper);color:var(--court);box-shadow:0 1px 2px rgba(20,36,58,.14)}
+.mine{margin-left:auto;border:1.5px solid var(--court);background:transparent;color:var(--court);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer}
+.mine.set{background:var(--court);color:var(--line)}
+main{padding:16px 16px 40px}
 
 /* 날짜 띠 */
-.days{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:thin}
-.day{flex:0 0 auto;width:58px;border:1px solid var(--hair);background:var(--line);border-radius:var(--r);
-  padding:6px 0 7px;text-align:center;cursor:pointer}
-.day .d{font-size:11px;color:var(--muted)}
-.day .n{font-size:18px;font-weight:700;line-height:1.2}
-.day .c{margin-top:3px;font-size:11px;font-weight:700;height:16px}
-.day .c.has{display:inline-block;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:0 7px}
-.day .c.ny,.day .c.full{color:var(--muted);font-weight:500}
+.days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 12px}
+.days::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;width:54px;border:0;background:transparent;border-radius:14px;padding:6px 0 8px;text-align:center;cursor:pointer}
+.day .d{font-size:11px;color:var(--muted);font-weight:600}
+.day .n{font-size:19px;font-weight:750;line-height:1.25}
+.day .c{display:block;margin:4px auto 0;width:8px;height:8px;border-radius:50%}
+.day .c.has{background:var(--ball);box-shadow:0 0 0 1.5px #B6CC2C}
+.day .c.ny{background:repeating-linear-gradient(135deg,#9FB3CC 0 2px,transparent 2px 4px)}
+.day .c.full{background:#C8D3E0}
 .day.sat .d{color:#2C62B0}.day.sun .d{color:#C0392B}
-.day[aria-pressed="true"]{border-color:var(--court);background:var(--court);color:var(--line)}
-.day[aria-pressed="true"] .d,.day[aria-pressed="true"] .c.ny{color:#C9D7EA}
+.day[aria-pressed="true"]{background:var(--court);color:var(--line)}
+.day[aria-pressed="true"] .d{color:#C9D7EA}
 
-/* 시간×코트 표 */
-.grid{background:var(--line);border-radius:14px;padding:10px;border:1px solid var(--hair)}
-.gh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:2px 4px 10px}
-.gh h3{margin:0;font-size:17px;font-weight:800}
-.gh small{font-size:12px;color:var(--muted)}
-table{border-collapse:separate;border-spacing:4px;width:100%;table-layout:fixed}
-th{font-size:12px;font-weight:700;color:var(--muted);padding:2px 0}
-th.court{color:var(--court);font-size:13px}
-td.h{width:44px;font-size:12px;color:var(--muted);text-align:right;padding-right:4px;white-space:nowrap}
-td.s{height:32px;border-radius:7px;text-align:center;font-size:12px;font-weight:700;padding:0}
-td.s a{display:flex;align-items:center;justify-content:center;height:100%;text-decoration:none;border-radius:7px}
-.st-open{background:var(--ball);color:var(--ball-ink)}
-.st-open a:hover{box-shadow:inset 0 0 0 2px var(--court)}
-.st-booked{background:var(--booked)}
-.st-notyet{background:var(--hatch)}
-.st-off{background:transparent;box-shadow:inset 0 0 0 1px #E6ECF3}
-.st-past{background:#EEF2F6;opacity:.55}
-.st-error{background:repeating-linear-gradient(135deg,var(--warn) 0 5px,#FBE3B5 5px 10px);color:#3A2600}
-.note{margin:10px 4px 2px;font-size:12px;color:var(--muted)}
+/* 코트 판 */
+.board{background:var(--court);border-radius:18px;padding:14px 12px 12px;color:var(--line)}
+.bh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 4px 12px}
+.bh h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.bh small{font-size:12.5px;color:#C9D7EA;font-weight:600}
+.bh small b{color:var(--ball)}
+.court{display:grid}
+.court .colh{font-size:12px;font-weight:700;color:#DCE7F5;text-align:center;padding:0 0 6px}
+.court .colh small{display:block;font-size:10.5px;color:#A9BEDB;font-weight:600}
+.court .hl{font-size:11.5px;color:#BFD0E6;padding-right:8px;display:flex;align-items:center;justify-content:flex-end;font-weight:600;position:relative}
+.court .hl.my{color:var(--line)}
+.court .hl.my::before{content:"";position:absolute;right:1px;top:3px;bottom:3px;width:3px;background:var(--ball);border-radius:2px}
+.cell{height:30px;border-right:2px solid rgba(255,255,255,.9);border-bottom:1px solid rgba(255,255,255,.2);display:grid;place-items:center}
+.cell.first{border-left:2px solid rgba(255,255,255,.9)}
+.cell.top{border-top:2px solid rgba(255,255,255,.9)}
+.cell.bottom{border-bottom:2px solid rgba(255,255,255,.9)}
+.cell.gap{border-right:2px solid rgba(255,255,255,.9);margin-right:8px}
+.cell.gap + .cell{border-left:2px solid rgba(255,255,255,.9)}
+.cell.my{background-color:rgba(255,255,255,.07)}
+.s-booked::after{content:"";width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.38)}
+.s-off{background:var(--court-deep)}
+.s-past{background:var(--court-deep);opacity:.6}
+.s-notyet{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.16) 0 3px,transparent 3px 7px)}
+.s-error{background-image:repeating-linear-gradient(135deg,rgba(242,184,75,.85) 0 4px,rgba(242,184,75,.35) 4px 8px)}
+.s-open a{display:grid;place-items:center;width:100%;height:100%;text-decoration:none}
+.s-open a::before{content:"";width:18px;height:18px;border-radius:50%;background:var(--ball);box-shadow:0 0 0 3px rgba(220,242,75,.22),0 2px 4px rgba(0,0,0,.25)}
+.s-open a:hover::before{transform:scale(1.15)}
+@media (prefers-reduced-motion:no-preference){.s-open a::before{transition:transform .12s}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:#C9D7EA;margin:12px 4px 0}
+.legend i{width:14px;height:14px;border-radius:3px;vertical-align:-3px;margin-right:5px;border:1px solid rgba(255,255,255,.4);display:inline-grid;place-items:center}
+.legend .lo{border-color:transparent}
+.legend .lo::before{content:"";width:11px;height:11px;border-radius:50%;background:var(--ball)}
+.legend .lb::after{content:"";width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.6)}
+.legend .ln{background:repeating-linear-gradient(135deg,rgba(255,255,255,.4) 0 2px,transparent 2px 4px)}
+.legend .lf{background:var(--court-deep)}
+.legend .le{background:repeating-linear-gradient(135deg,var(--warn) 0 3px,rgba(242,184,75,.4) 3px 6px)}
+.note{margin:10px 4px 0;font-size:12.5px;color:#C9D7EA}
 .err{margin:10px 4px 0;font-size:13px;background:#FDF1DC;border-radius:8px;padding:8px 10px;color:#5A3B00}
 
 /* 달력 */
-.months{display:grid;gap:18px}
-.month h3{margin:0 0 8px;font-size:17px;font-weight:800}
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-.cal .w{font-size:11px;color:var(--muted);text-align:center;padding-bottom:2px}
+.months{display:grid;gap:22px}
+.month h3{margin:0 0 10px;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal .w{font-size:11px;color:var(--muted);text-align:center;font-weight:600}
 .cal .w:nth-child(6){color:#2C62B0}.cal .w:nth-child(7){color:#C0392B}
-.cell{aspect-ratio:1/1.05;min-width:0;border-radius:9px;background:var(--line);border:1px solid var(--hair);padding:5px 6px;
-  display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;text-align:left}
-.cell .dn{font-size:13px;font-weight:700}
-.cell .cnt{align-self:flex-end;font-size:13px;font-weight:800}
-.cell.has{background:var(--ball);border-color:#C8DD3A;color:var(--ball-ink)}
-.cell.full .cnt{font-size:11px;font-weight:600;color:var(--muted)}
-.cell.ny{background:var(--hatch)}
-.cell.ny .cnt{font-size:11px;font-weight:600;color:var(--muted)}
-.cell.blank{visibility:hidden}
-.cell.gone{opacity:.4;cursor:default}
+.cc{min-width:0;aspect-ratio:1/1.08;border-radius:12px;background:var(--paper);border:1px solid var(--hair);padding:6px 7px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;text-align:left}
+.cc .dn{font-size:13px;font-weight:700}
+.cc .cnt{align-self:flex-end;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.cc.has{background:var(--court);border-color:var(--court);color:var(--line)}
+.cc.has .cnt{display:flex;align-items:center;gap:4px;color:var(--ball);font-size:13px;font-weight:800}
+.cc.has .cnt::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ball)}
+.cc.ny{background:repeating-linear-gradient(135deg,#E3EAF3 0 3px,#F6F8FB 3px 7px)}
+.cc.blank{visibility:hidden}
+.cc.gone{opacity:.35;cursor:default}
 
 /* 빈자리 목록 */
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.filters button{border:1px solid var(--hair);background:var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.filters button{border:1px solid var(--hair);background:var(--paper);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:650;cursor:pointer}
 .filters button[aria-pressed="true"]{background:var(--court);border-color:var(--court);color:var(--line)}
-.group{margin-bottom:16px}
-.group h3{margin:0 0 6px;font-size:15px;font-weight:800}
+.group{display:grid;grid-template-columns:76px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--hair)}
+.group h3{margin:0;font-size:14.5px;font-weight:800;padding-top:5px}
 .slots{display:flex;flex-wrap:wrap;gap:6px}
-.slot{display:inline-flex;gap:6px;align-items:baseline;text-decoration:none;background:var(--ball);color:var(--ball-ink);
-  border-radius:8px;padding:6px 10px;font-weight:800;font-size:14px}
-.slot span{font-weight:600;font-size:12px;opacity:.8}
-.empty{background:var(--line);border:1px dashed #BFCDDD;border-radius:14px;padding:22px 16px;text-align:center;color:var(--muted);font-size:14px}
+.slot{display:inline-flex;gap:7px;align-items:center;text-decoration:none;background:var(--paper);border:1px solid var(--hair);border-radius:999px;padding:5px 12px 5px 6px;font-weight:800;font-size:14px}
+.slot::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--ball);box-shadow:0 0 0 1.5px #B6CC2C}
+.slot span{font-weight:600;font-size:12px;color:var(--muted)}
+.slot:hover{border-color:var(--court)}
+.empty{background:var(--paper);border:1px dashed #BFCDDD;border-radius:16px;padding:24px 16px;text-align:center;color:var(--muted);font-size:14px}
 
-  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* 내 시간대 */
+dialog{border:0;border-radius:20px;padding:0;max-width:420px;width:calc(100% - 32px);color:var(--ink);box-shadow:0 20px 50px rgba(20,36,58,.3)}
+dialog::backdrop{background:rgba(20,36,58,.45)}
+.dlg{padding:20px}
+.dlg h2{margin:0 0 4px;font-size:19px;font-weight:800}
+.dlg p{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.dlg .t{display:block;font-size:13px;font-weight:700;margin:14px 0 8px}
+.wk{display:flex;gap:6px}
+.wk button{flex:1;border:1px solid var(--hair);background:var(--paper);border-radius:10px;padding:8px 0;font-weight:700;cursor:pointer}
+.wk button[aria-pressed="true"]{background:var(--court);border-color:var(--court);color:var(--line)}
+.hrs{display:flex;align-items:center;gap:8px;font-size:14px}
+.hrs select{flex:1;border:1px solid var(--hair);border-radius:10px;padding:8px 10px;background:var(--paper)}
+.act{display:flex;gap:8px;margin-top:20px}
+.act button{flex:1;border-radius:12px;padding:11px 0;font-weight:750;cursor:pointer;border:1px solid var(--hair);background:var(--paper)}
+.act .ok{background:var(--court);border-color:var(--court);color:var(--line)}
+
 footer{font-size:12px;color:var(--muted);text-align:center;padding:0 16px 32px}
-@media (min-width:720px){ .top h1{font-size:26px} td.s{height:30px} .months{grid-template-columns:1fr 1fr} }
-@media (prefers-reduced-motion:no-preference){ .seg button,.day,.cell{transition:background .15s,color .15s} }
+@media (min-width:760px){
+  .headline{font-size:32px}
+  .top{padding:22px 24px 24px}
+  main{padding:20px 24px 48px}
+  .bar .wrap{padding:10px 24px}
+  .months{grid-template-columns:1fr 1fr}
+  .cell{height:28px}
+}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <h1>양재 테니스장 빈자리</h1>
-  <div class="meta" id="meta">불러오는 중</div>
+  <div class="toprow">
+    <p class="brand">양재 테니스장 빈자리</p>
+    <a class="naver" href="https://m.booking.naver.com/booking/10/bizes/210031" target="_blank" rel="noopener">네이버 예약</a>
+  </div>
+  <h1 class="headline" id="headline">불러오는 중</h1>
+  <div class="meta" id="meta"></div>
   <div id="stale"></div>
-  <section class="soon" aria-labelledby="soonT">
+  <div class="soonhead">
     <h2 id="soonT">가장 빠른 빈자리</h2>
-    <div class="chips" id="soon"></div>
-  </section>
+    <button class="toggle" id="onlyMine" aria-pressed="false" hidden><span class="sw"></span>내 시간대만</button>
+  </div>
+  <div class="chips" id="soon" aria-labelledby="soonT"></div>
 </div></header>
 
 <div class="bar"><div class="wrap">
   <div class="seg" role="group" aria-label="코트 종류">
-    <button data-kind="in" aria-pressed="true">실내 A·B·C</button>
-    <button data-kind="out" aria-pressed="false">실외 1–8번</button>
+    <button data-kind="in" aria-pressed="true">실내</button>
+    <button data-kind="out" aria-pressed="false">실외</button>
   </div>
   <div class="seg" role="group" aria-label="보기">
     <button data-view="table" aria-pressed="true">표</button>
     <button data-view="cal" aria-pressed="false">달력</button>
     <button data-view="list" aria-pressed="false">빈자리</button>
   </div>
+  <button class="mine" id="mineBtn">내 시간대</button>
 </div></div>
 
-<main class="wrap">
-  <div class="legend" aria-hidden="true">
-    <span><i class="st-open"></i>예약 가능</span><span><i class="st-booked"></i>마감</span>
-    <span><i class="st-notyet"></i>오픈 전</span><span><i class="st-off"></i>운영 안 함</span>
-    <span><i class="st-error"></i>확인 실패</span>
-  </div>
-  <div id="view"></div>
-</main>
+<main class="wrap"><div id="view"></div></main>
 <footer>예약은 네이버 예약에서 직접 해요. 이 페이지는 현황을 읽어서 보여주기만 해요.</footer>
 
-<script>
-const ST_LABEL={open:"예약 가능",booked:"마감",notyet:"오픈 전",off:"운영 안 함",past:"지난 시간",error:"확인 실패"};
-const WD="일월화수목금토";
-const state={kind:"in",view:"table",day:null,filter:"all"};
-let D=null;
+<dialog id="dlg"><form method="dialog" class="dlg">
+  <h2>내 시간대</h2>
+  <p>자주 치는 요일과 시간을 고르면 표에서 강조하고, 빈자리만 따로 모아 볼 수 있어요. 이 기기에만 저장돼요.</p>
+  <span class="t">요일</span>
+  <div class="wk" id="wk"></div>
+  <label class="t" for="hs">시간</label>
+  <div class="hrs"><select id="hs" aria-label="시작 시각"></select><span>부터</span><select id="he" aria-label="끝 시각"></select><span>까지</span></div>
+  <div class="act"><button value="clear">지우기</button><button value="save" class="ok">저장</button></div>
+</form></dialog>
 
-const $=s=>document.querySelector(s);
+<script>
+const ST={open:"예약 가능",booked:"마감",notyet:"오픈 전",off:"운영 안 함",past:"지난 시간",error:"확인 실패"};
+const WD="일월화수목금토";
+const state={kind:"in",view:"table",day:null,filter:"all",onlyMine:false};
+let D=null, MINE=null;
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const pad=n=>String(n).padStart(2,"0");
 const dObj=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const dLabel=s=>{const x=dObj(s);return `${x.getMonth()+1}/${x.getDate()}(${WD[x.getDay()]})`};
-const courts=()=>D.courts.filter(c=>(state.kind==="in")===c.indoor);
+const courtsOf=k=>D.courts.filter(c=>(k==="in")===c.indoor);
+const courts=()=>courtsOf(state.kind);
 const bookUrl=(cell,date)=>`${D.bizUrl}/items/${cell.itemId}?startDate=${date}`;
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cName=id=>{const c=D.courts.find(c=>c.id===id);return c?c.label:id};
+const WIDE=matchMedia("(min-width:900px)");
+
+try{MINE=JSON.parse(localStorage.getItem("mine")||"null")}catch(e){MINE=null}
+if(MINE) state.onlyMine=false;
+const isMine=(date,h)=>!!MINE&&MINE.days.includes(dObj(date).getDay())&&h>=MINE.from&&h<MINE.to;
+function saveMine(v){MINE=v;try{v?localStorage.setItem("mine",JSON.stringify(v)):localStorage.removeItem("mine")}catch(e){}}
 
 function openSlots(kind=state.kind){
-  const ids=new Set(D.courts.filter(c=>(kind==="in")===c.indoor).map(c=>c.id));
-  const out=[];
+  const ids=new Set(courtsOf(kind).map(c=>c.id)), out=[];
   for(const [date,day] of Object.entries(D.dates))
     for(const [cid,cell] of Object.entries(day)){
       if(!ids.has(cid)||!cell.slots) continue;
       for(const [h,s] of Object.entries(cell.slots)) if(s==="open") out.push({date,court:cid,h:+h,cell});
     }
-  return out.sort((a,b)=>a.date.localeCompare(b.date)||a.h-b.h||a.court.localeCompare(b.court));
+  return out.sort((a,b)=>a.date.localeCompare(b.date)||a.h-b.h||a.court.localeCompare(b.court,undefined,{numeric:true}));
 }
 function dayInfo(date){
-  const day=D.dates[date]||{};let open=0,ny=0,err=0,any=0;
-  for(const c of courts()){const cell=day[c.id];if(!cell)continue;
-    if(cell.error){err++;continue}
-    for(const s of Object.values(cell.slots)){if(s==="open")open++;if(s==="notyet")ny++;if(s!=="off"&&s!=="past")any++}}
-  return {open,ny,err,any};
+  const day=D.dates[date]||{};let open=0,ny=0,err=0;
+  for(const c of courts()){const cell=day[c.id];if(!cell)continue;if(cell.error){err++;continue}
+    for(const s of Object.values(cell.slots)){if(s==="open")open++;if(s==="notyet")ny++}}
+  return {open,ny,err};
 }
 function hoursRange(){
   let lo=24,hi=-1;
@@ -195,87 +262,125 @@ function hoursRange(){
     for(const [h,s] of Object.entries(cell.slots||{})) if(s!=="off"){lo=Math.min(lo,+h);hi=Math.max(hi,+h)}
   return hi<0?[6,21]:[lo,hi];
 }
-function courtName(id){const c=D.courts.find(c=>c.id===id);return c?c.label:id}
 
 function renderHeader(){
-  const g=new Date(D.generatedAt);
-  const mins=Math.round((Date.now()-g)/60000);
-  $("#meta").innerHTML=`${g.getMonth()+1}월 ${g.getDate()}일 ${pad(g.getHours())}:${pad(g.getMinutes())}에 확인했어요 (${mins<1?"방금":mins+"분 전"}). 15분마다 갱신돼요. <a href="${D.bizUrl}" target="_blank" rel="noopener">네이버 예약 열기</a>`;
-  $("#stale").innerHTML=mins>60?`<div class="stale">마지막 확인이 ${Math.floor(mins/60)}시간 ${mins%60}분 전이에요. 지금 현황과 다를 수 있으니 네이버에서 확인하세요.</div>`:"";
-  const s=openSlots().slice(0,12);
-  $("#soon").innerHTML=s.length?s.map(o=>`<a class="chip" href="${bookUrl(o.cell,o.date)}" target="_blank" rel="noopener"><b>${dLabel(o.date)} ${pad(o.h)}시</b><span>${courtName(o.court)}</span></a>`).join("")
-    :`<div class="none">${state.kind==="in"?"실내":"실외"} 코트는 지금 예약 가능한 시간이 없어요. 빈자리가 생기면 텔레그램으로 알려드려요.</div>`;
+  const g=new Date(D.generatedAt), mins=Math.max(0,Math.round((Date.now()-g)/60000));
+  const nIn=openSlots("in").length, nOut=openSlots("out").length;
+  const part=(label,n)=>n?`${label} <em>${n}칸</em>`:`${label} <span class="zero">0칸</span>`;
+  $("#headline").innerHTML=`${part("실내",nIn)}, ${part("실외",nOut)}`;
+  $("#meta").textContent=`${pad(g.getHours())}:${pad(g.getMinutes())} 확인 (${mins<1?"방금":mins+"분 전"}), 15분마다 갱신`;
+  $("#stale").innerHTML=mins>60?`<div class="stale">마지막 확인이 ${Math.floor(mins/60)}시간 ${mins%60}분 전이에요. 지금과 다를 수 있으니 네이버에서 확인하세요.</div>`:"";
+  const om=$("#onlyMine"); om.hidden=!MINE; om.setAttribute("aria-pressed",String(state.onlyMine&&!!MINE));
+  let s=openSlots(); if(state.onlyMine&&MINE) s=s.filter(o=>isMine(o.date,o.h));
+  s=s.slice(0,14);
+  const kindTxt=state.kind==="in"?"실내":"실외";
+  $("#soon").innerHTML=s.length?s.map(o=>`<a class="chip" href="${bookUrl(o.cell,o.date)}" target="_blank" rel="noopener" aria-label="${dLabel(o.date)} ${pad(o.h)}시 ${cName(o.court)}, 네이버에서 예약"><span class="b">${o.court}</span><span><strong>${dLabel(o.date)} ${pad(o.h)}시</strong><small>${cName(o.court)}</small></span></a>`).join("")
+    :`<div class="none">${state.onlyMine&&MINE?"내 시간대에는":kindTxt+" 코트는"} 지금 예약 가능한 시간이 없어요. 빈자리가 생기면 텔레그램으로 알려드려요.</div>`;
+  const mb=$("#mineBtn"); mb.classList.toggle("set",!!MINE);
+  mb.textContent=MINE?`${MINE.days.map(d=>WD[d]).join("")} ${MINE.from}–${MINE.to}시`:"내 시간대";
+}
+
+const legend=()=>`<div class="legend" aria-hidden="true"><span><i class="lo"></i>예약 가능</span><span><i class="lb"></i>마감</span><span><i class="ln"></i>오픈 전</span><span><i class="lf"></i>운영 안 함</span><span><i class="le"></i>확인 실패</span></div>`;
+
+function courtGrid(cols,week){
+  const [lo,hi]=hoursRange(), n=cols.length;
+  let html=`<div class="court" style="grid-template-columns:44px repeat(${n},minmax(0,1fr))" role="table"><div role="columnheader"></div>`;
+  cols.forEach((c,i)=>{
+    if(week){
+      if(i===0||cols[i-1].date!==c.date){const grp=cols.filter(x=>x.date===c.date), x=dObj(c.date);
+        html+=`<div class="colh" role="columnheader" style="grid-column:span ${grp.length}">${x.getMonth()+1}/${x.getDate()} ${WD[x.getDay()]}<small>${grp.map(x=>x.court).join("  ")}</small></div>`}
+    } else html+=`<div class="colh" role="columnheader">${state.kind==="in"?c.court:c.court+"번"}</div>`;
+  });
+  for(let h=lo;h<=hi;h++){
+    html+=`<div class="hl ${cols.some(c=>isMine(c.date,h))?"my":""}" role="rowheader">${pad(h)}시</div>`;
+    cols.forEach((c,i)=>{
+      const cell=(D.dates[c.date]||{})[c.court];
+      const s=!cell||cell.error?"error":(cell.slots[h]||"off");
+      const gap=week&&i<n-1&&cols[i+1].date!==c.date;
+      const cls=["cell","s-"+s,i===0?"first":"",h===lo?"top":"",h===hi?"bottom":"",gap?"gap":"",isMine(c.date,h)?"my":""].join(" ");
+      const lab=`${dLabel(c.date)} ${cName(c.court)} ${pad(h)}시 ${ST[s]}`;
+      html+= s==="open"
+        ? `<div class="${cls}" role="cell"><a href="${bookUrl(cell,c.date)}" target="_blank" rel="noopener" aria-label="${lab}, 네이버에서 예약" title="${lab}"></a></div>`
+        : `<div class="${cls}" role="cell" title="${lab}"><span class="vh">${lab}</span></div>`;
+    });
+  }
+  return html+`</div>`;
 }
 
 function renderTable(){
   const dates=Object.keys(D.dates);
   if(!state.day||!D.dates[state.day]) state.day=(dates.find(d=>dayInfo(d).open)||dates[0]);
-  const strip=dates.map(d=>{const x=dObj(d),i=dayInfo(d),wd=x.getDay();
-    const c=i.open?`<span class="c has">${i.open}</span>`:i.ny?`<span class="c ny">오픈 전</span>`:i.err?`<span class="c ny">?</span>`:`<span class="c full">마감</span>`;
-    return `<button class="day ${wd===6?"sat":wd===0?"sun":""}" data-day="${d}" aria-pressed="${d===state.day}" aria-label="${dLabel(d)} 빈자리 ${i.open}개"><div class="d">${x.getMonth()+1}월 ${WD[wd]}</div><div class="n">${x.getDate()}</div>${c}</button>`}).join("");
-  const day=D.dates[state.day]||{}, cs=courts(), [lo,hi]=hoursRange();
-  let rows="";
-  for(let h=lo;h<=hi;h++){
-    rows+=`<tr><td class="h">${pad(h)}시</td>`+cs.map(c=>{
-      const cell=day[c.id];const s=!cell?"error":cell.error?"error":(cell.slots[h]||"off");
-      const lab=`${courtName(c.id)} ${pad(h)}시 ${ST_LABEL[s]}`;
-      if(s==="open") return `<td class="s st-open"><a href="${bookUrl(cell,state.day)}" target="_blank" rel="noopener" aria-label="${lab}, 네이버에서 예약">예약</a></td>`;
-      return `<td class="s st-${s}" title="${lab}">${s==="error"?"?":""}<span class="vh">${lab}</span></td>`;
-    }).join("")+"</tr>";
-  }
-  const errs=cs.filter(c=>day[c.id]?.error).map(c=>courtName(c.id));
-  const ny=cs.map(c=>day[c.id]).find(cell=>cell&&cell.slots&&Object.values(cell.slots).includes("notyet"));
-  const i=dayInfo(state.day);
-  const nyNote=ny?`<p class="note">이 날짜는 ${fmtOpen(ny.notyetUntil)}에 예약이 열려요(공지 기준, 바뀔 수 있음).</p>`:"";
+  const week=WIDE.matches&&state.kind==="in";
+  const idx=dates.indexOf(state.day), shown=week?dates.slice(idx,idx+7):[state.day];
+  const strip=dates.map(d=>{const x=dObj(d),i=dayInfo(d),wd=x.getDay(), c=i.open?"has":(i.ny||i.err)?"ny":"full";
+    return `<button class="day ${wd===6?"sat":wd===0?"sun":""}" data-day="${d}" aria-pressed="${d===state.day}" aria-label="${dLabel(d)} 빈자리 ${i.open}칸"><div class="d">${x.getMonth()+1}월 ${WD[wd]}</div><div class="n">${x.getDate()}</div><span class="c ${c}"></span></button>`}).join("");
+  const cols=shown.flatMap(d=>courts().map(c=>({date:d,court:c.id})));
+  const total=shown.reduce((a,d)=>a+dayInfo(d).open,0);
+  const title=week?`${dLabel(shown[0])} – ${dLabel(shown[shown.length-1])}`:dLabel(state.day);
+  const errs=[...new Set(cols.filter(c=>(D.dates[c.date]||{})[c.court]?.error).map(c=>cName(c.court)))];
+  const ny=cols.map(c=>(D.dates[c.date]||{})[c.court]).find(cell=>cell&&cell.slots&&Object.values(cell.slots).includes("notyet"));
   $("#view").innerHTML=`<div class="days" role="group" aria-label="날짜">${strip}</div>
-    <section class="grid"><div class="gh"><h3>${dLabel(state.day)}</h3><small>${i.open?`예약 가능 ${i.open}칸`:"예약 가능한 칸 없음"}</small></div>
-    <table><thead><tr><th></th>${cs.map(c=>`<th class="court" scope="col">${state.kind==="in"?c.id:c.id+"번"}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
-    ${errs.length?`<div class="err">${errs.join(", ")}은(는) 이번 수집에서 확인하지 못했어요. 다음 갱신 때 다시 확인해요.</div>`:""}${nyNote}</section>`;
-  document.querySelectorAll(".day").forEach(b=>b.onclick=()=>{state.day=b.dataset.day;renderTable()});
+    <section class="board"><div class="bh"><h3>${title}</h3><small>${total?`예약 가능 <b>${total}칸</b>`:"예약 가능한 칸 없음"}</small></div>
+    ${courtGrid(cols,week)}${legend()}
+    ${ny?`<p class="note">${fmtOpen(ny.notyetUntil)}에 예약이 열려요(공지 기준, 바뀔 수 있음).</p>`:""}
+    ${errs.length?`<div class="err">${errs.join(", ")}은(는) 이번 수집에서 확인하지 못했어요. 다음 갱신 때 다시 확인해요.</div>`:""}</section>`;
+  $$(".day").forEach(b=>b.onclick=()=>{state.day=b.dataset.day;renderTable()});
   document.querySelector('.day[aria-pressed="true"]')?.scrollIntoView({inline:"center",block:"nearest"});
 }
-function fmtOpen(iso){const x=new Date(iso);return `${x.getMonth()+1}월 ${x.getDate()}일 ${pad(x.getHours())}:${pad(x.getMinutes())}`}
+const fmtOpen=iso=>{const x=new Date(iso);return `${x.getMonth()+1}월 ${x.getDate()}일 ${pad(x.getHours())}:${pad(x.getMinutes())}`};
 
 function renderCal(){
   const dates=Object.keys(D.dates); if(!dates.length) return;
-  const months=[...new Set(dates.map(d=>d.slice(0,7)))];
-  const today=dates[0];
+  const months=[...new Set(dates.map(d=>d.slice(0,7)))], t0=dObj(dates[0]);
+  const monday=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-((t0.getDay()+6)%7));
   $("#view").innerHTML=`<div class="months">${months.map(ym=>{
     const [y,m]=ym.split("-").map(Number), first=new Date(y,m-1,1), n=new Date(y,m,0).getDate();
-    const t0=dObj(today), monday=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-((t0.getDay()+6)%7));
-    let startD=1; if(first<monday) startD=monday.getMonth()===m-1?monday.getDate():1;
+    const startD=first<monday&&monday.getMonth()===m-1?monday.getDate():1;
     const lead=(new Date(y,m-1,startD).getDay()+6)%7; let cells="";
-    for(let k=0;k<lead;k++) cells+=`<div class="cell blank"></div>`;
+    for(let k=0;k<lead;k++) cells+=`<div class="cc blank"></div>`;
     for(let d=startD;d<=n;d++){const ds=`${ym}-${pad(d)}`;
-      if(!D.dates[ds]){cells+=`<div class="cell gone"><span class="dn">${d}</span></div>`;continue}
-      const i=dayInfo(ds);
-      const cls=i.open?"has":i.ny?"ny":"full";
-      const cnt=i.open?`${i.open}칸`:i.ny?"오픈 전":i.err?"?":"마감";
-      cells+=`<button class="cell ${cls}" data-day="${ds}" aria-label="${dLabel(ds)} ${cnt}"><span class="dn">${d}</span><span class="cnt">${cnt}</span></button>`}
+      if(!D.dates[ds]){cells+=`<div class="cc gone"><span class="dn">${d}</span></div>`;continue}
+      const i=dayInfo(ds), cls=i.open?"has":i.ny?"ny":"", cnt=i.open?`${i.open}칸`:i.ny?"오픈 전":i.err?"확인 실패":"마감";
+      cells+=`<button class="cc ${cls}" data-day="${ds}" aria-label="${dLabel(ds)} ${cnt}"><span class="dn">${d}</span><span class="cnt">${cnt}</span></button>`}
     return `<section class="month"><h3>${y}년 ${m}월</h3><div class="cal">${"월화수목금토일".split("").map(w=>`<div class="w">${w}</div>`).join("")}${cells}</div></section>`}).join("")}</div>`;
-  document.querySelectorAll(".cell[data-day]").forEach(b=>b.onclick=()=>{state.day=b.dataset.day;setView("table")});
+  $$(".cc[data-day]").forEach(b=>b.onclick=()=>{state.day=b.dataset.day;setView("table")});
 }
 
-const FILTERS={all:["전체",()=>true],morning:["아침 6–9시",o=>o.h<9],day:["낮 9–18시",o=>o.h>=9&&o.h<18],
-  evening:["평일 저녁 18시 이후",o=>o.h>=18&&dObj(o.date).getDay()%6!==0],weekend:["주말",o=>dObj(o.date).getDay()%6===0]};
+const FILTERS={all:["전체",()=>true],mine:["내 시간대",o=>isMine(o.date,o.h)],morning:["아침 6–9시",o=>o.h<9],day:["낮 9–18시",o=>o.h>=9&&o.h<18],
+  evening:["평일 저녁",o=>o.h>=18&&dObj(o.date).getDay()%6!==0],weekend:["주말",o=>dObj(o.date).getDay()%6===0]};
 function renderList(){
-  const all=openSlots(), f=FILTERS[state.filter][1], list=all.filter(f);
-  const groups={}; list.forEach(o=>(groups[o.date]??=[]).push(o));
-  $("#view").innerHTML=`<div class="filters" role="group" aria-label="시간대">${Object.entries(FILTERS).map(([k,[l]])=>`<button data-f="${k}" aria-pressed="${k===state.filter}">${l}</button>`).join("")}</div>`+
-    (list.length?Object.entries(groups).map(([d,os])=>`<section class="group"><h3>${dLabel(d)}</h3><div class="slots">${os.map(o=>`<a class="slot" href="${bookUrl(o.cell,o.date)}" target="_blank" rel="noopener">${pad(o.h)}시<span>${courtName(o.court)}</span></a>`).join("")}</div></section>`).join("")
-    :`<div class="empty">${FILTERS[state.filter][0]} 조건에 맞는 빈자리가 지금은 없어요.<br>새로 생기면 텔레그램으로 알려드려요.</div>`);
-  document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{state.filter=b.dataset.f;renderList()});
+  if(state.filter==="mine"&&!MINE) state.filter="all";
+  const list=openSlots().filter(FILTERS[state.filter][1]), groups={};
+  list.forEach(o=>(groups[o.date]??=[]).push(o));
+  const keys=Object.keys(FILTERS).filter(k=>k!=="mine"||MINE);
+  $("#view").innerHTML=`<div class="filters" role="group" aria-label="시간대">${keys.map(k=>`<button data-f="${k}" aria-pressed="${k===state.filter}">${FILTERS[k][0]}</button>`).join("")}</div>`+
+    (list.length?Object.entries(groups).map(([d,os])=>`<section class="group"><h3>${dLabel(d)}</h3><div class="slots">${os.map(o=>`<a class="slot" href="${bookUrl(o.cell,o.date)}" target="_blank" rel="noopener">${pad(o.h)}시<span>${cName(o.court)}</span></a>`).join("")}</div></section>`).join("")
+    :`<div class="empty">${FILTERS[state.filter][0]} 조건에 맞는 ${state.kind==="in"?"실내":"실외"} 빈자리가 지금은 없어요.<br>새로 생기면 텔레그램으로 알려드려요.</div>`);
+  $$("[data-f]").forEach(b=>b.onclick=()=>{state.filter=b.dataset.f;renderList()});
 }
 
-function setView(v){state.view=v;document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.view===v));render()}
-function render(){renderHeader();({table:renderTable,cal:renderCal,list:renderList})[state.view]()}
-document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>setView(b.dataset.view));
-document.querySelectorAll("[data-kind]").forEach(b=>b.onclick=()=>{state.kind=b.dataset.kind;
-  document.querySelectorAll("[data-kind]").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
+function setView(v){state.view=v;$$("[data-view]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.view===v));render()}
+function render(){if(!D)return;renderHeader();({table:renderTable,cal:renderCal,list:renderList})[state.view]()}
+$$("[data-view]").forEach(b=>b.onclick=()=>setView(b.dataset.view));
+$$("[data-kind]").forEach(b=>b.onclick=()=>{state.kind=b.dataset.kind;$$("[data-kind]").forEach(x=>x.setAttribute("aria-pressed",x===b));render()});
+$("#onlyMine").onclick=()=>{state.onlyMine=!state.onlyMine;renderHeader()};
+WIDE.addEventListener("change",render);
+
+const dlg=$("#dlg"); let draft=null;
+for(let h=6;h<=23;h++){const o=`<option value="${h}">${pad(h)}시</option>`;$("#hs").insertAdjacentHTML("beforeend",o);$("#he").insertAdjacentHTML("beforeend",o)}
+function drawWk(){$("#wk").innerHTML=[1,2,3,4,5,6,0].map(d=>`<button type="button" data-wd="${d}" aria-pressed="${draft.days.includes(d)}">${WD[d]}</button>`).join("");
+  $$("[data-wd]").forEach(b=>b.onclick=()=>{const d=+b.dataset.wd;draft.days=draft.days.includes(d)?draft.days.filter(x=>x!==d):[...draft.days,d];drawWk()})}
+$("#mineBtn").onclick=()=>{draft=MINE?{...MINE,days:[...MINE.days]}:{days:[1,2,3,4,5],from:19,to:22};
+  $("#hs").value=draft.from;$("#he").value=draft.to;drawWk();dlg.showModal?dlg.showModal():dlg.setAttribute("open","")};
+dlg.addEventListener("close",()=>{
+  if(dlg.returnValue==="save"){const f=+$("#hs").value,t=+$("#he").value;
+    if(draft.days.length&&t>f){saveMine({days:draft.days.sort(),from:f,to:t});state.onlyMine=true}}
+  else if(dlg.returnValue==="clear"){saveMine(null);state.onlyMine=false}
+  render()});
 
 async function load(){
   try{const r=await fetch("data.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);D=await r.json();render()}
-  catch(e){$("#meta").textContent="현황 파일을 불러오지 못했어요("+esc(e.message)+"). 잠시 뒤 새로고침하세요.";}
+  catch(e){$("#headline").textContent="현황을 불러오지 못했어요";$("#meta").textContent=`(${e.message}) 잠시 뒤 새로고침하세요.`}
 }
 load(); setInterval(load,5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
