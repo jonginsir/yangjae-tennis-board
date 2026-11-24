@@ -52,13 +52,22 @@ def fetch_schedule(item):
     return data["schedule"]["bizItemSchedule"]["hourly"] or []
 
 
-def telegram(lines):
+BOARD_URL = "https://jonginsir.github.io/yangjae-tennis-board/"
+
+
+def send(text):
     tok, chat = os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
-    if not (tok and chat and lines):
+    if not (tok and chat):
+        print("telegram: secrets 없음")
         return
-    text = "🎾 양재 실내 빈자리 생김\n" + "\n".join(lines) + "\n" + BIZ_URL
-    requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                  json={"chat_id": chat, "text": text, "disable_web_page_preview": True}, timeout=20)
+    r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
+                      json={"chat_id": chat, "text": text, "disable_web_page_preview": True}, timeout=20)
+    print("telegram:", r.status_code, r.json().get("description", "ok"))
+
+
+def telegram(lines):
+    if lines:
+        send("🎾 양재 실내 빈자리 생김\n" + "\n".join(lines) + "\n\n보드: " + BOARD_URL + "\n예약: " + BIZ_URL)
 
 
 def main():
@@ -89,6 +98,8 @@ def main():
              for d, c, h in new_openings(prev, data) if c in alert_courts]
     print("new openings:", lines)
     telegram(lines)
+    if os.environ.get("TELEGRAM_TEST") == "true":
+        send("✅ 양재 테니스장 빈자리 알림 연결 테스트\n실내 A·B·C에 새 빈자리가 생기면 이렇게 알려드려요.\n보드: " + BOARD_URL)
 
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "data.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

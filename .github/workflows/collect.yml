@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: "*/15 * * * *"   # 15분 간격 (GitHub 사정으로 늦어질 수 있음)
   workflow_dispatch:
+    inputs:
+      test_alert:
+        description: 텔레그램 테스트 메시지 보내기
+        type: boolean
+        default: false
   push:
     branches: [main]
 permissions:
@@ -28,6 +33,7 @@ jobs:
           PREV_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_TEST: ${{ inputs.test_alert }}
         run: |
           mkdir -p site && cp -r web/. site/
           python -m collector.run
