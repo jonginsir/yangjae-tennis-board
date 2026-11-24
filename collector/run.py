@@ -11,7 +11,7 @@ from datetime import datetime
 import requests
 
 from .board import BIZ_URL, build, relevant_items
-from .core import KST, new_openings
+from .core import KST, alert_text, new_openings, newly_opened_months
 
 GQL = "https://m.booking.naver.com/graphql"
 HERE = pathlib.Path(__file__).parent
@@ -65,9 +65,7 @@ def send(text):
     print("telegram:", r.status_code, r.json().get("description", "ok"))
 
 
-def telegram(lines):
-    if lines:
-        send("🎾 양재 실내 빈자리 생김\n" + "\n".join(lines) + "\n\n보드: " + BOARD_URL + "\n예약: " + BIZ_URL)
+
 
 
 def main():
@@ -97,9 +95,11 @@ def main():
     lines = [f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
              for d, c, h in new_openings(prev, data) if c in alert_courts]
     print("new openings:", lines)
-    telegram(lines)
+    text = alert_text(lines, newly_opened_months(prev, data, alert_courts), BOARD_URL, BIZ_URL)
+    if text:
+        send(text)
     if os.environ.get("TELEGRAM_TEST") == "true":
-        send("✅ 양재 테니스장 빈자리 알림 연결 테스트\n실내 A·B·C에 새 빈자리가 생기면 이렇게 알려드려요.\n보드: " + BOARD_URL)
+        send("✅ 알림 연결 테스트 (아래는 예시예요)\n\n" + alert_text(["12/03(수) B코트 19시", "12/03(수) B코트 20시"], {}, BOARD_URL, BIZ_URL))
 
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "data.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

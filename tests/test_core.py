@@ -3,8 +3,8 @@ import pathlib
 from datetime import datetime
 
 from collector.board import build, relevant_items
-from collector.core import (BOOKED, KST, NOTYET, OFF, OPEN, PAST, classify,
-                            new_openings, open_at, parse_item)
+from collector.core import (BOOKED, KST, NOTYET, OFF, OPEN, PAST, alert_text, classify,
+                            new_openings, newly_opened_months, open_at, parse_item)
 
 FX = pathlib.Path(__file__).parent / "fixtures"
 NOW = datetime(2026, 11, 25, 1, 5, tzinfo=KST)  # 탐색 수집 시각
@@ -78,3 +78,20 @@ def test_new_openings_only_changed_cells():
 def _meta(ids):
     items = [i for i in load("items.json") if str(i["bizItemId"]) in ids]
     return relevant_items(items, NOW)
+
+
+def test_month_opening_is_one_summary_not_flood():
+    """1월분이 열리는 순간(오픈 전 -> 가능) 수백 칸을 하나씩 알리면 텔레그램 길이 제한에 걸린다."""
+    prev = {"dates": {f"2027-01-{d:02d}": {"A": {"slots": {str(h): NOTYET for h in range(6, 22)}}} for d in range(1, 32)}}
+    cur = {"dates": {f"2027-01-{d:02d}": {"A": {"slots": {str(h): OPEN for h in range(6, 22)}}} for d in range(1, 32)}}
+    assert new_openings(prev, cur) == []
+    assert newly_opened_months(prev, cur, {"A"}) == {("2027", "01"): 31 * 16}
+    text = alert_text([], newly_opened_months(prev, cur), "B", "N")
+    assert "1월 예약이 열렸어요" in text and len(text) < 4096
+
+
+def test_alert_text_is_capped():
+    lines = [f"12/0{i % 9 + 1} A코트 {h:02d}시" for i in range(40) for h in range(3)]
+    text = alert_text(lines, {}, "B", "N")
+    assert len(text) < 4096 and "외 95칸 더 있어요" in text
+    assert alert_text([], {}, "B", "N") is None

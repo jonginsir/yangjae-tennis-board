@@ -70,6 +70,40 @@ def new_openings(prev: dict | None, cur: dict):
             if not pcell or "slots" not in pcell:
                 continue
             for hour, st in slots.items():
-                if st == OPEN and pcell["slots"].get(hour) not in (OPEN, None):
+                before = pcell["slots"].get(hour)
+                if st == OPEN and before not in (OPEN, NOTYET, None):
                     out.append((date, court, int(hour)))
     return sorted(out)
+
+
+def newly_opened_months(prev: dict | None, cur: dict, courts=None):
+    """'오픈 전' 칸이 이번에 처음 열린 달 -> {('2027','01'): 빈자리 수}. 칸별 알림 대신 한 줄 요약용."""
+    if not prev:
+        return {}
+    out = {}
+    for date, cs in cur.get("dates", {}).items():
+        for court, cell in cs.items():
+            if courts and court not in courts:
+                continue
+            pslots = (prev.get("dates", {}).get(date, {}).get(court) or {}).get("slots") or {}
+            for hour, st in (cell.get("slots") or {}).items():
+                if pslots.get(hour) == NOTYET and st != NOTYET:
+                    key = (date[:4], date[5:7])
+                    out.setdefault(key, 0)
+                    out[key] += st == OPEN
+    return out
+
+
+def alert_text(lines, opened, board_url, biz_url, limit=25):
+    """텔레그램 한 통(4096자 제한) 안에 들어가게 만든다."""
+    parts = []
+    for (y, m), n in sorted(opened.items()):
+        parts.append(f"📅 {int(m)}월 예약이 열렸어요. 실내 빈자리 {n}칸")
+    if lines:
+        parts.append("🎾 양재 실내 빈자리 생김")
+        parts += lines[:limit]
+        if len(lines) > limit:
+            parts.append(f"외 {len(lines) - limit}칸 더 있어요")
+    if not parts:
+        return None
+    return "\n".join(parts) + f"\n\n보드: {board_url}\n예약: {biz_url}"
