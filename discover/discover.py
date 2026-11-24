@@ -40,6 +40,7 @@ with sync_playwright() as p:
     (OUT / "biz.txt").write_text(page.inner_text("body"), encoding="utf-8")
     (OUT / "item_links.json").write_text(json.dumps(links, ensure_ascii=False, indent=1))
     print("item links", len(links))
+    links = links or [f"{BIZ_URL}/items/{i}" for i in ("8073288", "8152852", "8246662")]
     for i, link in enumerate(links[:6]):
         page.wait_for_timeout(2000)
         rr = page.goto(link, wait_until="networkidle", timeout=60000)
