@@ -64,7 +64,7 @@ main{padding:14px 16px 48px}
 .day .n{font-size:18px;font-weight:700;line-height:1.2}
 .day .c{margin-top:3px;font-size:11px;font-weight:700;height:16px}
 .day .c.has{display:inline-block;background:var(--ball);color:var(--ball-ink);border-radius:999px;padding:0 7px}
-.day .c.ny{color:var(--muted);font-weight:500}
+.day .c.ny,.day .c.full{color:var(--muted);font-weight:500}
 .day.sat .d{color:#2C62B0}.day.sun .d{color:#C0392B}
 .day[aria-pressed="true"]{border-color:var(--court);background:var(--court);color:var(--line)}
 .day[aria-pressed="true"] .d,.day[aria-pressed="true"] .c.ny{color:#C9D7EA}
@@ -93,10 +93,10 @@ td.s a{display:flex;align-items:center;justify-content:center;height:100%;text-d
 /* 달력 */
 .months{display:grid;gap:18px}
 .month h3{margin:0 0 8px;font-size:17px;font-weight:800}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .w{font-size:11px;color:var(--muted);text-align:center;padding-bottom:2px}
 .cal .w:nth-child(6){color:#2C62B0}.cal .w:nth-child(7){color:#C0392B}
-.cell{aspect-ratio:1/1.05;border-radius:9px;background:var(--line);border:1px solid var(--hair);padding:5px 6px;
+.cell{aspect-ratio:1/1.05;min-width:0;border-radius:9px;background:var(--line);border:1px solid var(--hair);padding:5px 6px;
   display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;text-align:left}
 .cell .dn{font-size:13px;font-weight:700}
 .cell .cnt{align-self:flex-end;font-size:13px;font-weight:800}
@@ -211,7 +211,7 @@ function renderTable(){
   const dates=Object.keys(D.dates);
   if(!state.day||!D.dates[state.day]) state.day=(dates.find(d=>dayInfo(d).open)||dates[0]);
   const strip=dates.map(d=>{const x=dObj(d),i=dayInfo(d),wd=x.getDay();
-    const c=i.open?`<span class="c has">${i.open}</span>`:i.ny?`<span class="c ny">오픈 전</span>`:i.err?`<span class="c ny">?</span>`:`<span class="c"></span>`;
+    const c=i.open?`<span class="c has">${i.open}</span>`:i.ny?`<span class="c ny">오픈 전</span>`:i.err?`<span class="c ny">?</span>`:`<span class="c full">마감</span>`;
     return `<button class="day ${wd===6?"sat":wd===0?"sun":""}" data-day="${d}" aria-pressed="${d===state.day}" aria-label="${dLabel(d)} 빈자리 ${i.open}개"><div class="d">${x.getMonth()+1}월 ${WD[wd]}</div><div class="n">${x.getDate()}</div>${c}</button>`}).join("");
   const day=D.dates[state.day]||{}, cs=courts(), [lo,hi]=hoursRange();
   let rows="";
@@ -242,9 +242,11 @@ function renderCal(){
   const today=dates[0];
   $("#view").innerHTML=`<div class="months">${months.map(ym=>{
     const [y,m]=ym.split("-").map(Number), first=new Date(y,m-1,1), n=new Date(y,m,0).getDate();
-    const lead=(first.getDay()+6)%7; let cells="";
+    const t0=dObj(today), monday=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-((t0.getDay()+6)%7));
+    let startD=1; if(first<monday) startD=monday.getMonth()===m-1?monday.getDate():1;
+    const lead=(new Date(y,m-1,startD).getDay()+6)%7; let cells="";
     for(let k=0;k<lead;k++) cells+=`<div class="cell blank"></div>`;
-    for(let d=1;d<=n;d++){const ds=`${ym}-${pad(d)}`;
+    for(let d=startD;d<=n;d++){const ds=`${ym}-${pad(d)}`;
       if(!D.dates[ds]){cells+=`<div class="cell gone"><span class="dn">${d}</span></div>`;continue}
       const i=dayInfo(ds);
       const cls=i.open?"has":i.ny?"ny":"full";
