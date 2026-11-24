@@ -1,0 +1,62 @@
+query hourlySchedule($scheduleParams: ScheduleParams) {
+  schedule(input: $scheduleParams) {
+    bizItemSchedule {
+      hourly {
+        id
+        name
+        slotId
+        scheduleId
+        detailScheduleId
+        unitStartDateTime
+        unitStartTime
+        unitBookingCount
+        unitStock
+        bookingCount
+        occupiedBookingCount
+        stock
+        isBusinessDay
+        isSaleDay
+        isUnitSaleDay
+        isUnitBusinessDay
+        isHoliday
+        duration
+        desc
+        minBookingCount
+        maxBookingCount
+        saleStartDateTime
+        saleEndDateTime
+        seatGroups {
+          color
+          maxPrice
+          name
+          remainStock
+          __typename
+        }
+        prices {
+          groupName
+          isDefault
+          price
+          priceId
+          scheduleId
+          priceTypeCode
+          name
+          normalPrice
+          desc
+          order
+          groupOrder
+          slotId
+          agencyKey
+          bookingCount
+          isImp
+          golfSlotType
+          saleStartDateTime
+          saleEndDateTime
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
