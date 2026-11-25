@@ -69,6 +69,15 @@ def send(text):
 
 
 
+def debounce_listing(meta, prev):
+    """네이버 목록이 수집마다 깜빡인다(11/25 확인). 이번과 직전 둘 다 목록에 없을 때만 '내려간 상품'으로 본다."""
+    prev_listed = set((prev or {}).get("listed") or [])
+    for m in meta:
+        if not m["listed"] and m["name"] in prev_listed:
+            m["listed"] = True
+    return meta
+
+
 def health_message(prev, data, now):
     """보드 이상이 생기거나 바뀌면 알리고, 복구되면 한 번 알린다."""
     cur, ph = data["health"], (prev or {}).get("health")
@@ -115,6 +124,7 @@ def main():
     print("open notice:", open_notice)
     meta = relevant_items(merge_items(listed, seed, prev), now, open_notice)
     meta = _dedupe(meta)
+    debounce_listing(meta, prev)
     print("listed:", len(listed), "unlisted used:", [m["name"] for m in meta if not m["listed"]])
     if not meta:
         sys.exit("상품 목록을 해석하지 못함 — 이름 형식이 바뀌었는지 확인 필요")
@@ -128,6 +138,7 @@ def main():
         time.sleep(GAP)
     data = build(meta, schedules, now)
     data["listed"] = sorted(i["name"] for i in listed)
+    data["known"] = sorted(set((prev or {}).get("known") or []) | {m["name"] for m in meta} | set(data["listed"]))
     data["notice"] = notice
     data["health"] = health(data)
     alert_courts = set(os.environ.get("ALERT_COURTS", "A,B,C").split(","))

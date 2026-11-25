@@ -160,12 +160,12 @@ def changes(prev: dict | None, cur: dict) -> list[str]:
     if not prev:
         return []
     out = []
-    pl, cl = set(prev.get("listed") or []), set(cur.get("listed") or [])
+    # 처음 보는 상품(새 달 등)만 알린다. 목록이 깜빡여서 다시 보이는 상품은 알리지 않는다.
+    known = set(prev.get("known") or []) | set(prev.get("listed") or [])
     if prev.get("listed") is not None:
-        if cl - pl:
-            out.append("새로 올라온 상품: " + ", ".join(sorted(cl - pl)))
-        if pl - cl:
-            out.append("목록에서 내려간 상품(보드는 계속 추적): " + ", ".join(sorted(pl - cl)))
+        new = set(cur.get("listed") or []) - known
+        if new:
+            out.append("새로 올라온 상품: " + ", ".join(sorted(new)))
     if prev.get("notice") and cur.get("notice") and prev["notice"] != cur["notice"]:
         out.append("공지가 바뀌었어요:\n" + cur["notice"][:350] + ("…" if len(cur["notice"]) > 350 else ""))
     return out

@@ -146,11 +146,10 @@ def test_health_flags_error_cells():
 
 
 def test_changes_detects_listing_and_notice():
-    prev = {"listed": ["12월 A코트(실내)", "11월 A코트(실내)"], "notice": "12월분 11/1 09시"}
-    cur = {"listed": ["12월 A코트(실내)", "2월 A코트(실내)"], "notice": "1월분 12/1 09시"}
+    prev = {"listed": ["12월 A코트(실내)"], "known": ["12월 A코트(실내)", "11월 A코트(실내)"], "notice": "12월분 11/1 09시"}
+    cur = {"listed": ["12월 A코트(실내)", "11월 A코트(실내)", "2월 A코트(실내)"], "notice": "1월분 12/1 09시"}
     out = changes(prev, cur)
-    assert any("새로 올라온 상품: 2월 A코트(실내)" in x for x in out)
-    assert any("목록에서 내려간 상품" in x and "11월 A코트" in x for x in out)
+    assert any(x == "새로 올라온 상품: 2월 A코트(실내)" for x in out)   # 11월 A는 다시 보인 것뿐 → 알리지 않음
     assert any(x.startswith("공지가 바뀌었어요") for x in out)
     assert changes({"notice": "a"}, {"notice": "a", "listed": []}) == []  # 직전에 목록 기록이 없으면 비교 안 함
 
@@ -191,3 +190,11 @@ def test_unlisted_item_never_shows_open():
     assert data["dates"]["2026-11-26"]["A"]["slots"]["18"] == BOOKED
     meta[0]["listed"] = True
     assert build(meta, {"8073288": [slot]}, NOW)["dates"]["2026-11-26"]["A"]["slots"]["18"] == OPEN
+
+
+def test_listing_flicker_needs_two_runs():
+    from collector.run import debounce_listing
+    meta = [{"name": "11월 A코트(실내)", "listed": False}]
+    assert debounce_listing(meta, {"listed": ["11월 A코트(실내)"]})[0]["listed"] is True   # 한 번 빠짐 → 무시
+    meta = [{"name": "11월 A코트(실내)", "listed": False}]
+    assert debounce_listing(meta, {"listed": []})[0]["listed"] is False                   # 두 번 연속 → 내려간 상품
