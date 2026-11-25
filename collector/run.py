@@ -106,7 +106,9 @@ def main():
     seed = json.loads((HERE / "seed_items.json").read_text(encoding="utf-8"))
     notice = ""
     try:
-        notice = notice_from_html(S.get(BIZ_URL, headers={"accept": "text/html"}, timeout=20).text)
+        pr = S.get(BIZ_URL, headers={"accept": "text/html,application/xhtml+xml"}, timeout=20)
+        notice = notice_from_html(pr.text)
+        print("biz page:", pr.status_code, len(pr.text), "description" in pr.text, "월분" in pr.text, pr.url[:80])
     except Exception as e:
         print("공지 읽기 실패:", e)
     open_notice = parse_open_notice(notice)
