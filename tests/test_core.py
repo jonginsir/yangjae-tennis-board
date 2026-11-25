@@ -228,3 +228,17 @@ def test_chat_id_extracted_from_pasted_text():
     assert chat_ids(" −5012345678 ") == ["-5012345678"]          # 유니코드 마이너스
     assert chat_ids("123456789, -100987654321") == ["123456789", "-100987654321"]
     assert chat_ids("") == []
+
+
+def test_group_id_missing_minus_is_retried(monkeypatch):
+    """11/25: Secrets에 그룹 ID를 넣으며 맨 앞 '-'가 빠져 chat not found가 났다."""
+    import collector.run as run
+    monkeypatch.setenv("TELEGRAM_TOKEN", "t"); monkeypatch.setenv("TELEGRAM_CHAT_ID", "5393123456")
+    sent = []
+    class R:
+        def __init__(self, ok): self.status_code = 200 if ok else 400
+        def json(self): return {} if self.status_code == 200 else {"description": "chat not found"}
+    def post(url, json, timeout):
+        sent.append(json["chat_id"]); return R(json["chat_id"].startswith("-"))
+    monkeypatch.setattr(run.requests, "post", post)
+    assert run.send("x") is True and sent == ["5393123456", "-5393123456"]

@@ -64,7 +64,8 @@ def send(text):
         print("telegram: secrets 없음 또는 채팅 ID 숫자를 못 찾음")
         return False
     print("telegram 대상:", len(chats), "개", [f"{c[:4]}…({len(c)}자리)" for c in chats])  # 공개 로그라 일부만
-    return all([_send_one(tok, c, text) for c in chats])
+    return all([_send_one(tok, c, text) or (not c.startswith("-") and _send_one(tok, "-" + c, text, hint=True))
+                for c in chats])
 
 
 def chat_ids(raw: str):
@@ -75,7 +76,9 @@ def chat_ids(raw: str):
     return list(dict.fromkeys(re.findall(r"-?\d{5,}", raw)))
 
 
-def _send_one(tok, chat, text):
+def _send_one(tok, chat, text, hint=False):
+    if hint:
+        print("telegram: 앞에 '-'를 붙여 다시 시도 (그룹 ID는 '-'로 시작해요)")
     for attempt in range(3):
         try:
             r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
