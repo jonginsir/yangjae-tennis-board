@@ -2,7 +2,7 @@ import json
 import pathlib
 from datetime import datetime
 
-from collector.board import build, relevant_items
+from collector.board import build, merge_items, relevant_items
 from collector.core import (BOOKED, KST, NOTYET, OFF, OPEN, PAST, alert_text, classify,
                             new_openings, newly_opened_months, open_at, parse_item)
 
@@ -103,3 +103,14 @@ def test_missing_day_in_successful_response_is_closed_not_error():
     data = build(_meta(["8073288"]), {"8073288": slots}, NOW)
     cell = data["dates"]["2026-11-27"]["A"]
     assert cell.get("closedDay") and cell["slots"] == {} and "error" not in cell
+
+
+def test_unlisted_items_are_still_tracked():
+    """네이버 목록에서 사라진(마감된 달) 상품도 seed/직전 데이터로 계속 조회한다."""
+    listed = [i for i in load("items.json") if not i["name"].startswith(("11월 A", "12월 A"))]
+    merged = merge_items(listed, load("items.json"), None)
+    names = {m["name"] for m in merged}
+    assert "11월 A코트(실내)" in names and "12월 A코트(실내)" in names
+    prev = {"dates": {"2026-12-03": {"B": {"itemId": "999"}}}}
+    merged2 = merge_items([], [], prev)
+    assert merged2 == [{"bizItemId": "999", "name": "12월 B코트(실내)", "listed": False}]

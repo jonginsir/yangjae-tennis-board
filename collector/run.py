@@ -10,7 +10,7 @@ from datetime import datetime
 
 import requests
 
-from .board import BIZ_URL, build, relevant_items
+from .board import BIZ_URL, build, merge_items, relevant_items
 from .core import KST, alert_text, new_openings, newly_opened_months
 
 GQL = "https://m.booking.naver.com/graphql"
@@ -68,10 +68,29 @@ def send(text):
 
 
 
+def _dedupe(meta):
+    """같은 (연, 월, 코트)가 둘 이상이면 네이버 목록에 있는 상품을 우선한다."""
+    best = {}
+    for m in meta:
+        k = (m["year"], m["month"], m["court"])
+        if k not in best or (m["listed"] and not best[k]["listed"]):
+            best[k] = m
+    return list(best.values())
+
+
 def main():
     now = datetime.now(KST)
-    items = gql("bizItems", ITEMS_Q, {"input": {"businessId": "210031", "lang": "ko"}})["bizItems"]
-    meta = relevant_items(items, now)
+    prev = None
+    if PREV_URL:
+        try:
+            prev = requests.get(PREV_URL, timeout=15).json()
+        except Exception as e:
+            print("prev data 없음:", e)
+    listed = gql("bizItems", ITEMS_Q, {"input": {"businessId": "210031", "lang": "ko"}})["bizItems"]
+    seed = json.loads((HERE / "seed_items.json").read_text(encoding="utf-8"))
+    meta = relevant_items(merge_items(listed, seed, prev), now)
+    meta = _dedupe(meta)
+    print("listed:", len(listed), "unlisted used:", [m["name"] for m in meta if not m["listed"]])
     if not meta:
         sys.exit("상품 목록을 해석하지 못함 — 이름 형식이 바뀌었는지 확인 필요")
     schedules = {}
@@ -83,13 +102,6 @@ def main():
             print("fail", it["name"], e)
         time.sleep(GAP)
     data = build(meta, schedules, now)
-
-    prev = None
-    if PREV_URL:
-        try:
-            prev = requests.get(PREV_URL, timeout=15).json()
-        except Exception as e:
-            print("prev data 없음:", e)
     alert_courts = set(os.environ.get("ALERT_COURTS", "A,B,C").split(","))
     week = "월화수목금토일"
     lines = [f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"

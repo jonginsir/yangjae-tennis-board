@@ -8,6 +8,20 @@ from .core import ERROR, KST, classify, item_year, month_range, open_at, parse_i
 BIZ_URL = "https://m.booking.naver.com/booking/10/bizes/210031"
 
 
+def merge_items(listed: list[dict], seed: list[dict], prev: dict | None) -> list[dict]:
+    """네이버 목록은 마감된 달 상품을 숨기기도 한다. 목록 + 알려진 상품(seed) + 직전 수집에서 본 상품을 합친다."""
+    out = {str(i["bizItemId"]): {**i, "listed": True} for i in listed}
+    for i in seed:
+        out.setdefault(str(i["bizItemId"]), {**i, "listed": False})
+    for date, courts in (prev or {}).get("dates", {}).items():
+        for court, cell in courts.items():
+            iid = cell.get("itemId")
+            if iid and iid not in out:
+                kind = "실내" if court.isalpha() else "실외"
+                out[iid] = {"bizItemId": iid, "name": f"{int(date[5:7])}월 {court}코트({kind})", "listed": False}
+    return list(out.values())
+
+
 def relevant_items(items: list[dict], now: datetime):
     """이번 달 이후 상품만, (연, 월, 코트) 정보와 함께."""
     out = []
@@ -19,7 +33,7 @@ def relevant_items(items: list[dict], now: datetime):
         start, end = month_range(year, p["month"])
         if end < now:
             continue
-        out.append({**p, "year": year, "id": str(it["bizItemId"]), "name": it["name"],
+        out.append({**p, "year": year, "id": str(it["bizItemId"]), "name": it["name"], "listed": it.get("listed", True),
                     "start": max(start, now.replace(hour=0, minute=0, second=0, microsecond=0)),
                     "end": end, "opens": open_at(year, p["month"])})
     return out
