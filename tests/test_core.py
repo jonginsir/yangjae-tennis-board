@@ -173,3 +173,21 @@ def test_health_message_only_on_transitions():
     from datetime import timedelta
     old = {**good, "generatedAt": (NOW - timedelta(minutes=90)).isoformat()}
     assert "약 90분 멈춰" in health_message(old, good, NOW)
+
+
+def test_real_page_notice_is_business_notice_not_naver_boilerplate():
+    page = ('<meta name="description" content="네이버 예약이 연동된 곳 어디서나 바로 예약하고">'
+            + NOTICE_HTML)
+    assert "12월분" in notice_from_html(page)
+
+
+def test_unlisted_item_never_shows_open():
+    """11/25: 목록에서 내려간 11월 A코트의 취소 칸이 '빈자리'로 보였지만 네이버에서 예약 화면이 안 열렸다."""
+    meta = _meta(["8073288"])
+    meta[0]["listed"] = False
+    slot = {"unitStartTime": "2026-11-26 18:00:00", "isUnitBusinessDay": True, "isUnitSaleDay": True,
+            "isSaleDay": True, "unitBookingCount": 0, "unitStock": 1}
+    data = build(meta, {"8073288": [slot]}, NOW)
+    assert data["dates"]["2026-11-26"]["A"]["slots"]["18"] == BOOKED
+    meta[0]["listed"] = True
+    assert build(meta, {"8073288": [slot]}, NOW)["dates"]["2026-11-26"]["A"]["slots"]["18"] == OPEN

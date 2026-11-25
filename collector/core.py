@@ -112,13 +112,14 @@ def alert_text(lines, opened, board_url, biz_url, limit=25):  # noqa: 이전 버
 # ── 변경 감지 (보드 이상 / 다시 찬 자리 / 네이버 변경) ─────────────────
 import html as _html
 
-_META = re.compile(r'<meta[^>]+name="description"[^>]+content="([^"]*)"', re.S)
+_META = re.compile(r'<meta[^>]+(?:name|property)="(?:og:)?description"[^>]*content="([^"]*)"', re.S)
 _OPEN = re.compile(r"(\d{1,2})월분\s*코트\s*예약\s*:?\s*(\d{1,2})/(\d{1,2})\s*(\d{1,2})시\s*오픈")
 
 
 def notice_from_html(page: str) -> str:
-    m = _META.search(page or "")
-    return _html.unescape(m.group(1)).strip() if m else ""
+    """description 메타가 여러 개다(네이버 공통 문구 + 업체 공지). 가장 긴 것이 업체 공지."""
+    found = [_html.unescape(x).strip() for x in _META.findall(page or "")]
+    return max(found, key=len) if found else ""
 
 
 def parse_open_notice(text: str) -> dict:

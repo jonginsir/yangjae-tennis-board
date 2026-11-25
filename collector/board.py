@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from .core import ERROR, KST, classify, item_year, month_range, open_at, parse_item
+from .core import BOOKED, ERROR, KST, OPEN, classify, item_year, month_range, open_at, parse_item
 
 BIZ_URL = "https://m.booking.naver.com/booking/10/bizes/210031"
 
@@ -76,7 +76,11 @@ def build(items_meta: list[dict], schedules: dict, now: datetime) -> dict:
             cell = dates.setdefault(date, {}).setdefault(
                 it["court"], {"slots": {}, "checkedAt": checked, "itemId": it["id"],
                               "notyetUntil": it["opens"].isoformat(timespec="minutes")})
-            cell["slots"][str(hour)] = classify(slot, now, it["opens"])
+            st = classify(slot, now, it["opens"])
+            if st == OPEN and not it.get("listed", True):
+                st = BOOKED  # 네이버 목록에서 내려간 상품은 예약 화면이 열리지 않는다(11/25 확인)
+                cell["unlisted"] = True
+            cell["slots"][str(hour)] = st
         # 조회는 성공했는데 그 날짜 칸이 아예 없으면: 예약을 받지 않는 날(조회 실패 아님)
         d = it["start"]
         while d <= it["end"]:
