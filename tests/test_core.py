@@ -219,3 +219,12 @@ def test_telegram_failure_never_breaks_collection(monkeypatch):
         raise run.requests.ConnectionError("reset")
     monkeypatch.setattr(run.requests, "post", boom)
     assert run.send("x") is False
+
+
+def test_chat_id_extracted_from_pasted_text():
+    from collector.run import chat_ids
+    pasted = "👥 봇이 들어가 있는 그룹방을 찾았어요.\n아래 숫자...\n\n양재 테니스 빈자리\n-1001234567890\n"
+    assert chat_ids(pasted) == ["-1001234567890"]
+    assert chat_ids(" −5012345678 ") == ["-5012345678"]          # 유니코드 마이너스
+    assert chat_ids("123456789, -100987654321") == ["123456789", "-100987654321"]
+    assert chat_ids("") == []

@@ -58,14 +58,28 @@ BOARD_URL = "https://jonginsir.github.io/yangjae-tennis-board/"
 
 def send(text):
     """텔레그램 전송. 실패해도 수집·배포는 계속되도록 예외를 밖으로 내보내지 않는다(3번 재시도)."""
-    tok, chat = os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
-    if not (tok and chat):
-        print("telegram: secrets 없음")
+    tok = os.environ.get("TELEGRAM_TOKEN")
+    chats = chat_ids(os.environ.get("TELEGRAM_CHAT_ID", ""))
+    if not (tok and chats):
+        print("telegram: secrets 없음 또는 채팅 ID 숫자를 못 찾음")
         return False
+    print("telegram 대상:", len(chats), "개", [f"{c[:4]}…({len(c)}자리)" for c in chats])  # 공개 로그라 일부만
+    return all([_send_one(tok, c, text) for c in chats])
+
+
+def chat_ids(raw: str):
+    """Secrets 값에서 채팅 ID 숫자만 뽑는다. 메시지 전체를 붙여넣었거나 여러 개(쉼표·줄바꿈)여도 된다.
+    유니코드 마이너스(−, –)도 '-'로 본다."""
+    import re
+    raw = (raw or "").replace("\u2212", "-").replace("\u2013", "-")
+    return list(dict.fromkeys(re.findall(r"-?\d{5,}", raw)))
+
+
+def _send_one(tok, chat, text):
     for attempt in range(3):
         try:
             r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                              json={"chat_id": chat.strip(), "text": text, "parse_mode": "HTML",
+                              json={"chat_id": chat, "text": text, "parse_mode": "HTML",
                                     "disable_web_page_preview": True}, timeout=20)
             print("telegram:", r.status_code, r.json().get("description", "ok"))
             if r.status_code < 500:
