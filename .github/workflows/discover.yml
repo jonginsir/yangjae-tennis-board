@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install playwright && python -m playwright install --with-deps chromium
-      - run: python discover/discover.py
+      - run: python discover/discover.py && python discover/deeplink.py
       - name: 결과를 discover-out 브랜치에 저장
         if: always()
         run: |
