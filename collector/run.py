@@ -57,13 +57,23 @@ BOARD_URL = "https://jonginsir.github.io/yangjae-tennis-board/"
 
 
 def send(text):
+    """텔레그램 전송. 실패해도 수집·배포는 계속되도록 예외를 밖으로 내보내지 않는다(3번 재시도)."""
     tok, chat = os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not (tok and chat):
         print("telegram: secrets 없음")
-        return
-    r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                      json={"chat_id": chat, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=20)
-    print("telegram:", r.status_code, r.json().get("description", "ok"))
+        return False
+    for attempt in range(3):
+        try:
+            r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
+                              json={"chat_id": chat.strip(), "text": text, "parse_mode": "HTML",
+                                    "disable_web_page_preview": True}, timeout=20)
+            print("telegram:", r.status_code, r.json().get("description", "ok"))
+            if r.status_code < 500:
+                return r.status_code == 200
+        except Exception as e:
+            print("telegram 연결 실패:", type(e).__name__)
+        time.sleep(3 * (attempt + 1))
+    return False
 
 
 

@@ -208,3 +208,14 @@ def test_alert_lines_link_to_exact_item_and_date_and_escape():
     long = compose(opened={}, new_lines=[("x" * 50, "https://e.com/" + "y" * 80)] * 200, closed_lines=[], change_lines=[],
                    health_msg=None, board_url="B", biz_url="N")
     assert len(long) <= 4096 and long.count("<a ") == long.count("</a>")   # 링크 태그가 잘리지 않음
+
+
+def test_telegram_failure_never_breaks_collection(monkeypatch):
+    """11/25 23:12: 텔레그램 연결이 끊기자 수집 전체가 실패했다. 전송 실패는 삼켜야 한다."""
+    import collector.run as run
+    monkeypatch.setenv("TELEGRAM_TOKEN", "t"); monkeypatch.setenv("TELEGRAM_CHAT_ID", "-1")
+    monkeypatch.setattr(run.time, "sleep", lambda s: None)
+    def boom(*a, **k):
+        raise run.requests.ConnectionError("reset")
+    monkeypatch.setattr(run.requests, "post", boom)
+    assert run.send("x") is False
