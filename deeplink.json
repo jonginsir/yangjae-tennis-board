@@ -1,0 +1,62 @@
+{
+ "startDate": {
+  "final": "https://m.booking.naver.com/booking/10/bizes/210031/items/8152852?startDate=2026-12-17",
+  "sched_vars": [
+   {
+    "scheduleParams": {
+     "businessTypeId": 10,
+     "businessId": "210031",
+     "bizItemId": "8152852",
+     "startDateTime": "2026-11-29T00:00:00",
+     "endDateTime": "2027-01-02T23:59:59",
+     "fixedTime": true,
+     "includesHolidaySchedules": true
+    }
+   }
+  ],
+  "selected": [
+   "slick-slide slick-active slick-current|",
+   "MonthCalendar__calendar_date__MJkJC MonthCalendar__closed__ZUNG+ MonthCalendar__"
+  ]
+ },
+ "startDateTime": {
+  "final": "https://m.booking.naver.com/booking/10/bizes/210031/items/8152852?startDate=2026-12-17&startDateTime=2026-12-17T19%3A00%3A00",
+  "sched_vars": [
+   {
+    "scheduleParams": {
+     "businessTypeId": 10,
+     "businessId": "210031",
+     "bizItemId": "8152852",
+     "startDateTime": "2026-11-29T00:00:00",
+     "endDateTime": "2027-01-02T23:59:59",
+     "fixedTime": true,
+     "includesHolidaySchedules": true
+    }
+   }
+  ],
+  "selected": [
+   "slick-slide slick-active slick-current|",
+   "MonthCalendar__calendar_date__MJkJC MonthCalendar__closed__ZUNG+ MonthCalendar__"
+  ]
+ },
+ "time": {
+  "final": "https://m.booking.naver.com/booking/10/bizes/210031/items/8152852?startDate=2026-12-17&startTime=19%3A00",
+  "sched_vars": [
+   {
+    "scheduleParams": {
+     "businessTypeId": 10,
+     "businessId": "210031",
+     "bizItemId": "8152852",
+     "startDateTime": "2026-11-29T00:00:00",
+     "endDateTime": "2027-01-02T23:59:59",
+     "fixedTime": true,
+     "includesHolidaySchedules": true
+    }
+   }
+  ],
+  "selected": [
+   "slick-slide slick-active slick-current|",
+   "MonthCalendar__calendar_date__MJkJC MonthCalendar__closed__ZUNG+ MonthCalendar__"
+  ]
+ }
+}
