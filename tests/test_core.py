@@ -3,7 +3,8 @@ import pathlib
 from datetime import datetime
 
 from collector.board import build, merge_items, relevant_items
-from collector.core import (BOOKED, KST, NOTYET, OFF, OPEN, PAST, alert_text, classify,
+from collector.core import (changes, closed_again, compose, health, notice_from_html, parse_open_notice,
+                            BOOKED, KST, NOTYET, OFF, OPEN, PAST, alert_text, classify,
                             new_openings, newly_opened_months, open_at, parse_item)
 
 FX = pathlib.Path(__file__).parent / "fixtures"
@@ -114,3 +115,61 @@ def test_unlisted_items_are_still_tracked():
     prev = {"dates": {"2026-12-03": {"B": {"itemId": "999"}}}}
     merged2 = merge_items([], [], prev)
     assert merged2 == [{"bizItemId": "999", "name": "12월 B코트(실내)", "listed": False}]
+
+
+NOTICE_HTML = """<meta data-react-helmet="true" name="description" property="description" content="* 공 지 *12월분 코트예약 : 11/1 09시 오픈(오픈시간 예고없이 변경될수 있음) * 한시적 1인 1일 4시간">"""
+
+
+def test_notice_parsing_and_open_time_override():
+    text = notice_from_html(NOTICE_HTML)
+    assert text.startswith("* 공 지") and "12월분" in text
+    assert parse_open_notice(text) == {12: (11, 1, 9)}
+    assert parse_open_notice("1월분 코트예약 : 12/2 10시 오픈") == {1: (12, 2, 10)}
+    # 공지에 1월분이 12/2 10시로 나오면 그 시각을 쓴다(연도 넘어감 처리)
+    items = [{"bizItemId": "1", "name": "1월 A코트(실내)"}]
+    m = relevant_items(items, NOW, {1: (12, 2, 10)})[0]
+    assert m["opens"] == datetime(2026, 12, 2, 10, tzinfo=KST)
+    assert relevant_items(items, NOW, {})[0]["opens"] == datetime(2026, 12, 1, 9, tzinfo=KST)
+
+
+def test_closed_again_excludes_time_passing():
+    prev = {"dates": {"2026-12-02": {"A": {"slots": {"19": OPEN, "20": OPEN, "21": OPEN}}}}}
+    cur = {"dates": {"2026-12-02": {"A": {"slots": {"19": BOOKED, "20": PAST, "21": OPEN}}}}}
+    assert closed_again(prev, cur, {"A"}) == [("2026-12-02", "A", 19)]
+
+
+def test_health_flags_error_cells():
+    cur = {"dates": {"2026-12-01": {"A": {"error": "x"}}, "2026-12-02": {"A": {"error": "x"}, "B": {"slots": {}}}}}
+    h = health(cur)
+    assert not h["ok"] and h["issues"] == ["A코트 2일치 확인 실패 (12-01~12-02)"]
+    assert health({"dates": {"2026-12-01": {"A": {"slots": {}}}}})["ok"]
+
+
+def test_changes_detects_listing_and_notice():
+    prev = {"listed": ["12월 A코트(실내)", "11월 A코트(실내)"], "notice": "12월분 11/1 09시"}
+    cur = {"listed": ["12월 A코트(실내)", "2월 A코트(실내)"], "notice": "1월분 12/1 09시"}
+    out = changes(prev, cur)
+    assert any("새로 올라온 상품: 2월 A코트(실내)" in x for x in out)
+    assert any("목록에서 내려간 상품" in x and "11월 A코트" in x for x in out)
+    assert any(x.startswith("공지가 바뀌었어요") for x in out)
+    assert changes({"notice": "a"}, {"notice": "a", "listed": []}) == []  # 직전에 목록 기록이 없으면 비교 안 함
+
+
+def test_compose_fits_one_message():
+    t = compose(opened={}, new_lines=["x"] * 100, closed_lines=["y"] * 50, change_lines=["공지가 바뀌었어요:\n" + "가" * 2000],
+                health_msg="⚠️ 보드 이상", board_url="B", biz_url="N")
+    assert len(t) <= 4096 and t.endswith("예약: N")
+    assert compose(opened={}, new_lines=[], closed_lines=[], change_lines=[], health_msg=None, board_url="B", biz_url="N") is None
+
+
+def test_health_message_only_on_transitions():
+    from collector.run import health_message
+    bad = {"health": {"ok": False, "issues": ["A코트 3일치 확인 실패"]}, "generatedAt": NOW.isoformat()}
+    good = {"health": {"ok": True, "issues": []}, "generatedAt": NOW.isoformat()}
+    assert "보드 이상" in health_message(good, bad, NOW)
+    assert health_message(bad, bad, NOW) is None          # 같은 이상이 계속되면 반복 알림 안 함
+    assert "정상으로" in health_message(bad, good, NOW)
+    assert health_message(good, good, NOW) is None
+    from datetime import timedelta
+    old = {**good, "generatedAt": (NOW - timedelta(minutes=90)).isoformat()}
+    assert "약 90분 멈춰" in health_message(old, good, NOW)

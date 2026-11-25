@@ -22,8 +22,9 @@ def merge_items(listed: list[dict], seed: list[dict], prev: dict | None) -> list
     return list(out.values())
 
 
-def relevant_items(items: list[dict], now: datetime):
-    """이번 달 이후 상품만, (연, 월, 코트) 정보와 함께."""
+def relevant_items(items: list[dict], now: datetime, open_notice: dict | None = None):
+    """이번 달 이후 상품만, (연, 월, 코트) 정보와 함께.
+    open_notice: 공지에서 읽은 오픈 시각 {월: (월, 일, 시)}. 없으면 '전달 1일 09시' 규칙."""
     out = []
     for it in items:
         p = parse_item(it.get("name", ""))
@@ -35,8 +36,19 @@ def relevant_items(items: list[dict], now: datetime):
             continue
         out.append({**p, "year": year, "id": str(it["bizItemId"]), "name": it["name"], "listed": it.get("listed", True),
                     "start": max(start, now.replace(hour=0, minute=0, second=0, microsecond=0)),
-                    "end": end, "opens": open_at(year, p["month"])})
+                    "end": end, "opens": _opens(year, p["month"], open_notice)})
     return out
+
+
+def _opens(year, month, notice):
+    if notice and month in notice:
+        om, od, oh = notice[month]
+        oy = year if om <= month else year - 1
+        try:
+            return datetime(oy, om, od, oh, tzinfo=KST)
+        except ValueError:
+            pass
+    return open_at(year, month)
 
 
 def court_order(c):

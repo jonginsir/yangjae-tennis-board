@@ -94,7 +94,7 @@ def newly_opened_months(prev: dict | None, cur: dict, courts=None):
     return out
 
 
-def alert_text(lines, opened, board_url, biz_url, limit=25):
+def alert_text(lines, opened, board_url, biz_url, limit=25):  # noqa: 이전 버전 호환
     """텔레그램 한 통(4096자 제한) 안에 들어가게 만든다."""
     parts = []
     for (y, m), n in sorted(opened.items()):
@@ -107,3 +107,88 @@ def alert_text(lines, opened, board_url, biz_url, limit=25):
     if not parts:
         return None
     return "\n".join(parts) + f"\n\n보드: {board_url}\n예약: {biz_url}"
+
+
+# ── 변경 감지 (보드 이상 / 다시 찬 자리 / 네이버 변경) ─────────────────
+import html as _html
+
+_META = re.compile(r'<meta[^>]+name="description"[^>]+content="([^"]*)"', re.S)
+_OPEN = re.compile(r"(\d{1,2})월분\s*코트\s*예약\s*:?\s*(\d{1,2})/(\d{1,2})\s*(\d{1,2})시\s*오픈")
+
+
+def notice_from_html(page: str) -> str:
+    m = _META.search(page or "")
+    return _html.unescape(m.group(1)).strip() if m else ""
+
+
+def parse_open_notice(text: str) -> dict:
+    """'12월분 코트예약 : 11/1 09시 오픈' -> {12: (11, 1, 9)}"""
+    return {int(a): (int(b), int(c), int(d)) for a, b, c, d in _OPEN.findall(text or "")}
+
+
+def closed_again(prev: dict | None, cur: dict, courts=None):
+    """직전엔 빈자리였는데 이제 마감된 칸 (시간이 지나서 사라진 건 제외)."""
+    if not prev:
+        return []
+    out = []
+    for date, cs in cur.get("dates", {}).items():
+        for court, cell in cs.items():
+            if courts and court not in courts:
+                continue
+            pslots = (prev.get("dates", {}).get(date, {}).get(court) or {}).get("slots") or {}
+            for hour, st in (cell.get("slots") or {}).items():
+                if pslots.get(hour) == OPEN and st == BOOKED:
+                    out.append((date, court, int(hour)))
+    return sorted(out)
+
+
+def health(cur: dict, courts=None) -> dict:
+    """보드 상태: 확인 실패 칸이 있으면 이상."""
+    bad = {}
+    for date, cs in cur.get("dates", {}).items():
+        for court, cell in cs.items():
+            if (courts is None or court in courts) and "error" in cell:
+                bad.setdefault(court, []).append(date)
+    issues = [f"{c}코트 {len(ds)}일치 확인 실패 ({ds[0][5:]}~{ds[-1][5:]})" if c.isalpha()
+              else f"{c}번 코트 {len(ds)}일치 확인 실패" for c, ds in sorted(bad.items())]
+    return {"ok": not issues, "issues": issues}
+
+
+def changes(prev: dict | None, cur: dict) -> list[str]:
+    """네이버 쪽 변화: 상품 목록, 공지."""
+    if not prev:
+        return []
+    out = []
+    pl, cl = set(prev.get("listed") or []), set(cur.get("listed") or [])
+    if prev.get("listed") is not None:
+        if cl - pl:
+            out.append("새로 올라온 상품: " + ", ".join(sorted(cl - pl)))
+        if pl - cl:
+            out.append("목록에서 내려간 상품(보드는 계속 추적): " + ", ".join(sorted(pl - cl)))
+    if prev.get("notice") and cur.get("notice") and prev["notice"] != cur["notice"]:
+        out.append("공지가 바뀌었어요:\n" + cur["notice"][:350] + ("…" if len(cur["notice"]) > 350 else ""))
+    return out
+
+
+def compose(*, opened, new_lines, closed_lines, change_lines, health_msg, board_url, biz_url, limit=25):
+    """한 번의 수집에서 보낼 텔레그램 메시지 한 통 (4096자 이내)."""
+    parts = []
+    for (y, m), n in sorted(opened.items()):
+        parts.append(f"📅 {int(m)}월 예약이 열렸어요. 실내 빈자리 {n}칸")
+    if new_lines:
+        parts += ["🎾 양재 실내 빈자리 생김"] + new_lines[:limit]
+        if len(new_lines) > limit:
+            parts.append(f"외 {len(new_lines) - limit}칸 더 있어요")
+    if closed_lines:
+        parts += ["🔒 다시 마감됐어요"] + closed_lines[:15]
+        if len(closed_lines) > 15:
+            parts.append(f"외 {len(closed_lines) - 15}칸")
+    if change_lines:
+        parts += ["📢 네이버 변경"] + change_lines
+    if health_msg:
+        parts.append(health_msg)
+    if not parts:
+        return None
+    text = "\n".join(parts)
+    tail = f"\n\n보드: {board_url}\n예약: {biz_url}"
+    return text[: 4096 - len(tail)] + tail

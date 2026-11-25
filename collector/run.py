@@ -11,7 +11,8 @@ from datetime import datetime
 import requests
 
 from .board import BIZ_URL, build, merge_items, relevant_items
-from .core import KST, alert_text, new_openings, newly_opened_months
+from .core import (KST, alert_text, changes, closed_again, compose, health, new_openings,
+                   newly_opened_months, notice_from_html, parse_open_notice)
 
 GQL = "https://m.booking.naver.com/graphql"
 HERE = pathlib.Path(__file__).parent
@@ -68,6 +69,21 @@ def send(text):
 
 
 
+def health_message(prev, data, now):
+    """보드 이상이 생기거나 바뀌면 알리고, 복구되면 한 번 알린다."""
+    cur, ph = data["health"], (prev or {}).get("health")
+    msgs = []
+    if not cur["ok"] and (ph is None or ph.get("ok") or ph.get("issues") != cur["issues"]):
+        msgs.append("⚠️ 보드 이상\n" + "\n".join(cur["issues"][:10]))
+    if cur["ok"] and ph and not ph.get("ok"):
+        msgs.append("✅ 보드가 정상으로 돌아왔어요")
+    if prev and prev.get("generatedAt"):
+        gap = (now - datetime.fromisoformat(prev["generatedAt"])).total_seconds() / 60
+        if gap > 40:
+            msgs.append(f"✅ 수집이 다시 돌아왔어요 (약 {int(gap)}분 멈춰 있었어요)")
+    return "\n".join(msgs) or None
+
+
 def _dedupe(meta):
     """같은 (연, 월, 코트)가 둘 이상이면 네이버 목록에 있는 상품을 우선한다."""
     best = {}
@@ -88,7 +104,14 @@ def main():
             print("prev data 없음:", e)
     listed = gql("bizItems", ITEMS_Q, {"input": {"businessId": "210031", "lang": "ko"}})["bizItems"]
     seed = json.loads((HERE / "seed_items.json").read_text(encoding="utf-8"))
-    meta = relevant_items(merge_items(listed, seed, prev), now)
+    notice = ""
+    try:
+        notice = notice_from_html(S.get(BIZ_URL, headers={"accept": "text/html"}, timeout=20).text)
+    except Exception as e:
+        print("공지 읽기 실패:", e)
+    open_notice = parse_open_notice(notice)
+    print("open notice:", open_notice)
+    meta = relevant_items(merge_items(listed, seed, prev), now, open_notice)
     meta = _dedupe(meta)
     print("listed:", len(listed), "unlisted used:", [m["name"] for m in meta if not m["listed"]])
     if not meta:
@@ -102,16 +125,28 @@ def main():
             print("fail", it["name"], e)
         time.sleep(GAP)
     data = build(meta, schedules, now)
+    data["listed"] = sorted(i["name"] for i in listed)
+    data["notice"] = notice
+    data["health"] = health(data)
     alert_courts = set(os.environ.get("ALERT_COURTS", "A,B,C").split(","))
     week = "월화수목금토일"
     lines = [f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
              for d, c, h in new_openings(prev, data) if c in alert_courts]
     print("new openings:", lines)
-    text = alert_text(lines, newly_opened_months(prev, data, alert_courts), BOARD_URL, BIZ_URL)
+    fmt = lambda d, c, h: f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
+    closed_lines = [fmt(*x) for x in closed_again(prev, data, alert_courts)]
+    change_lines = changes(prev, data)
+    text = compose(opened=newly_opened_months(prev, data, alert_courts), new_lines=lines,
+                   closed_lines=closed_lines, change_lines=change_lines,
+                   health_msg=health_message(prev, data, now), board_url=BOARD_URL, biz_url=BIZ_URL)
+    print("closed:", closed_lines, "changes:", change_lines)
     if text:
         send(text)
     if os.environ.get("TELEGRAM_TEST") == "true":
-        send("✅ 알림 연결 테스트 (아래는 예시예요)\n\n" + alert_text(["12/03(수) B코트 19시", "12/03(수) B코트 20시"], {}, BOARD_URL, BIZ_URL))
+        send("✅ 알림 연결 테스트 (아래는 예시예요. 실제 상황이 아니에요)\n\n" + compose(
+            opened={}, new_lines=["12/03(수) B코트 19시"], closed_lines=["12/03(수) B코트 19시"],
+            change_lines=["새로 올라온 상품: 2월 A코트(실내), 2월 B코트(실내), 2월 C코트(실내)"],
+            health_msg="⚠️ 보드 이상\nC코트 3일치 확인 실패 (12-01~12-03)", board_url=BOARD_URL, biz_url=BIZ_URL))
 
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "data.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

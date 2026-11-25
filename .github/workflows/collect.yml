@@ -12,6 +12,7 @@ on:
     branches: [main]
 permissions:
   contents: write
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -37,6 +38,21 @@ jobs:
         run: |
           mkdir -p site && cp -r web/. site/
           python -m collector.run
+      - name: 실패 알림 (직전 실행이 성공이었을 때 한 번만)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          last=$(gh api "repos/${{ github.repository }}/actions/workflows/collect.yml/runs?status=completed&per_page=1" -q '.workflow_runs[0].conclusion' || echo unknown)
+          echo "previous: $last"
+          if [ "$last" = "success" ] && [ -n "$TELEGRAM_TOKEN" ]; then
+            curl -s -o /dev/null -w "telegram: %{http_code}\n" "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=⚠️ 양재 보드 수집이 실패했어요. 보드가 갱신되지 않고 있어요. 고쳐지면 다시 알려드려요.
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
       - name: 최신 data.json을 data 브랜치에도 보관 (점검용)
         run: |
           cd site && rm -rf .git && git init -q -b data
