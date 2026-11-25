@@ -169,10 +169,15 @@ def main():
     if text:
         send(text)
     if os.environ.get("TELEGRAM_TEST") == "true":
-        send("✅ 알림 연결 테스트 (아래는 예시예요. 실제 상황이 아니에요)\n\n" + compose(
-            opened={}, new_lines=[("12/03(수) B코트 19시", f"{BIZ_URL}/items/8152852?startDate=2026-12-03")], closed_lines=["12/03(수) B코트 19시"],
-            change_lines=["새로 올라온 상품: 2월 A코트(실내), 2월 B코트(실내), 2월 C코트(실내)"],
-            health_msg="⚠️ 보드 이상\nC코트 3일치 확인 실패 (12-01~12-03)", board_url=BOARD_URL, biz_url=BIZ_URL))
+        send("📢 <b>양재 테니스장 빈자리 알림방</b>\n\n"
+             "15분마다 네이버 예약을 확인해서 이 방으로 알려드려요.\n\n"
+             "🎾 실내 A·B·C에 새 빈자리가 생기면 → 줄을 누르면 그 날짜 예약 화면이 열려요\n"
+             "🔒 알린 빈자리가 다시 차면\n"
+             "📅 다음 달 예약이 열리면 (공지 기준 시각)\n"
+             "📢 네이버 공지나 상품 구성이 바뀌면\n"
+             "⚠️ 보드에 문제가 생기거나 복구되면\n\n"
+             "예약은 각자 네이버에서 직접 해주세요. 먼저 누르는 사람이 가져가요.\n\n"
+             f'<a href="{BOARD_URL}">빈자리 보드 열기</a>  ·  <a href="{BIZ_URL}">네이버 예약</a>')
 
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "data.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
