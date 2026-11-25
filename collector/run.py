@@ -62,7 +62,7 @@ def send(text):
         print("telegram: secrets 없음")
         return
     r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                      json={"chat_id": chat, "text": text, "disable_web_page_preview": True}, timeout=20)
+                      json={"chat_id": chat, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=20)
     print("telegram:", r.status_code, r.json().get("description", "ok"))
 
 
@@ -143,11 +143,14 @@ def main():
     data["health"] = health(data)
     alert_courts = set(os.environ.get("ALERT_COURTS", "A,B,C").split(","))
     week = "월화수목금토일"
-    lines = [f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
-             for d, c, h in new_openings(prev, data) if c in alert_courts]
+    def slot_link(d, c, h):
+        iid = data["dates"][d][c].get("itemId")
+        text = f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
+        return (text, f"{BIZ_URL}/items/{iid}?startDate={d}") if iid else text
+    lines = [slot_link(d, c, h) for d, c, h in new_openings(prev, data) if c in alert_courts]
     print("new openings:", lines)
     fmt = lambda d, c, h: f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
-    closed_lines = [fmt(*x) for x in closed_again(prev, data, alert_courts)]
+    closed_lines = [fmt(*x) for x in closed_again(prev, data, alert_courts)]  # 마감된 칸은 링크 불필요
     change_lines = changes(prev, data)
     text = compose(opened=newly_opened_months(prev, data, alert_courts), new_lines=lines,
                    closed_lines=closed_lines, change_lines=change_lines,
@@ -157,7 +160,7 @@ def main():
         send(text)
     if os.environ.get("TELEGRAM_TEST") == "true":
         send("✅ 알림 연결 테스트 (아래는 예시예요. 실제 상황이 아니에요)\n\n" + compose(
-            opened={}, new_lines=["12/03(수) B코트 19시"], closed_lines=["12/03(수) B코트 19시"],
+            opened={}, new_lines=[("12/03(수) B코트 19시", f"{BIZ_URL}/items/8152852?startDate=2026-12-03")], closed_lines=["12/03(수) B코트 19시"],
             change_lines=["새로 올라온 상품: 2월 A코트(실내), 2월 B코트(실내), 2월 C코트(실내)"],
             health_msg="⚠️ 보드 이상\nC코트 3일치 확인 실패 (12-01~12-03)", board_url=BOARD_URL, biz_url=BIZ_URL))
 

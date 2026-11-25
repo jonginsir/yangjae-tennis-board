@@ -157,7 +157,7 @@ def test_changes_detects_listing_and_notice():
 def test_compose_fits_one_message():
     t = compose(opened={}, new_lines=["x"] * 100, closed_lines=["y"] * 50, change_lines=["공지가 바뀌었어요:\n" + "가" * 2000],
                 health_msg="⚠️ 보드 이상", board_url="B", biz_url="N")
-    assert len(t) <= 4096 and t.endswith("예약: N")
+    assert len(t) <= 4096 and t.endswith('<a href="N">네이버 예약</a>')
     assert compose(opened={}, new_lines=[], closed_lines=[], change_lines=[], health_msg=None, board_url="B", biz_url="N") is None
 
 
@@ -198,3 +198,13 @@ def test_listing_flicker_needs_two_runs():
     assert debounce_listing(meta, {"listed": ["11월 A코트(실내)"]})[0]["listed"] is True   # 한 번 빠짐 → 무시
     meta = [{"name": "11월 A코트(실내)", "listed": False}]
     assert debounce_listing(meta, {"listed": []})[0]["listed"] is False                   # 두 번 연속 → 내려간 상품
+
+
+def test_alert_lines_link_to_exact_item_and_date_and_escape():
+    t = compose(opened={}, new_lines=[("12/17(목) A코트 19시", "https://m.booking.naver.com/booking/10/bizes/210031/items/8152852?startDate=2026-12-17")],
+                closed_lines=[], change_lines=["공지가 바뀌었어요:\n<b>주의</b> & 매크로"], health_msg=None, board_url="B", biz_url="N")
+    assert '<a href="https://m.booking.naver.com/booking/10/bizes/210031/items/8152852?startDate=2026-12-17">12/17(목) A코트 19시 ›</a>' in t
+    assert "&lt;b&gt;주의&lt;/b&gt; &amp; 매크로" in t    # 공지 속 기호가 텔레그램 HTML을 깨지 않게
+    long = compose(opened={}, new_lines=[("x" * 50, "https://e.com/" + "y" * 80)] * 200, closed_lines=[], change_lines=[],
+                   health_msg=None, board_url="B", biz_url="N")
+    assert len(long) <= 4096 and long.count("<a ") == long.count("</a>")   # 링크 태그가 잘리지 않음

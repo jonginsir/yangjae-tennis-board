@@ -171,8 +171,20 @@ def changes(prev: dict | None, cur: dict) -> list[str]:
     return out
 
 
+def _line(x):
+    """문자열 또는 (글자, 주소). 텔레그램 HTML 모드용으로 이스케이프하고, 주소가 있으면 링크로 만든다."""
+    if isinstance(x, tuple):
+        text, url = x
+        return f'<a href="{_html.escape(url, quote=True)}">{_html.escape(text)} ›</a>'
+    return _html.escape(str(x))
+
+
 def compose(*, opened, new_lines, closed_lines, change_lines, health_msg, board_url, biz_url, limit=25):
-    """한 번의 수집에서 보낼 텔레그램 메시지 한 통 (4096자 이내)."""
+    """한 번의 수집에서 보낼 텔레그램 메시지 한 통 (HTML 모드, 4096자 이내)."""
+    new_lines = [_line(x) for x in new_lines]
+    closed_lines = [_line(x) for x in closed_lines]
+    change_lines = [_line(x) for x in change_lines]
+    health_msg = _html.escape(health_msg) if health_msg else None
     parts = []
     for (y, m), n in sorted(opened.items()):
         parts.append(f"📅 {int(m)}월 예약이 열렸어요. 실내 빈자리 {n}칸")
@@ -190,6 +202,12 @@ def compose(*, opened, new_lines, closed_lines, change_lines, health_msg, board_
         parts.append(health_msg)
     if not parts:
         return None
-    text = "\n".join(parts)
-    tail = f"\n\n보드: {board_url}\n예약: {biz_url}"
-    return text[: 4096 - len(tail)] + tail
+    tail = f'\n\n<a href="{board_url}">보드 열기</a>  ·  <a href="{biz_url}">네이버 예약</a>'
+    body, used = [], 0
+    for line in parts:  # 줄 단위로 잘라서 링크 태그가 중간에 끊기지 않게 한다
+        if used + len(line) + 1 > 4096 - len(tail) - 20:
+            body.append("…")
+            break
+        body.append(line)
+        used += len(line) + 1
+    return "\n".join(body) + tail
