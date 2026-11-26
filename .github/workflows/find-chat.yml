@@ -1,6 +1,8 @@
 name: find-chat
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   find:
     runs-on: ubuntu-latest
@@ -13,3 +15,8 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: 게시판 번호 저장
+        run: |
+          git config user.name github-actions && git config user.email actions@github.com
+          git add collector/topics.json
+          git diff --cached --quiet || (git commit -m "텔레그램 게시판 번호 자동 설정" && git push)

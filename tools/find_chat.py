@@ -14,9 +14,10 @@ tok = os.environ["TELEGRAM_TOKEN"]
 api = f"https://api.telegram.org/bot{tok}"
 
 cands = []
+updates = requests.get(f"{api}/getUpdates", timeout=20).json().get("result", [])
 for c in chat_ids(os.environ.get("TELEGRAM_CHAT_ID", "")):
     cands += [c] if c.startswith("-") else [c, "-" + c]
-for u in requests.get(f"{api}/getUpdates", timeout=20).json().get("result", []):
+for u in updates:
     for key in ("message", "my_chat_member", "edited_message"):
         msg = u.get(key) or {}
         chat = msg.get("chat") or {}
@@ -44,3 +45,32 @@ for rid, title in found.items():
     text = (f"🔧 이 그룹방의 현재 ID예요. (그룹명: {title})\n\n{rid}\n\n"
             "GitHub Secrets의 TELEGRAM_CHAT_ID를 위 숫자로 바꿔주세요. 맨 앞 '-'까지 꼭 같이 복사해요.")
     print("send:", requests.post(f"{api}/sendMessage", json={"chat_id": rid, "text": text}, timeout=20).status_code)
+
+
+# ── 게시판(토픽) 번호 찾기: '실내' / '실외' ─────────────────────
+import json  # noqa: E402
+import pathlib  # noqa: E402
+
+NAMES = {"실내": "indoor", "실외": "outdoor"}
+topics = {}
+for u in updates:
+    msg = u.get("message") or {}
+    tid = msg.get("message_thread_id")
+    if not tid:
+        continue
+    created = msg.get("forum_topic_created") or (msg.get("reply_to_message") or {}).get("forum_topic_created") or {}
+    name = (created.get("name") or "").strip()
+    if name in NAMES:
+        topics[NAMES[name]] = tid
+print("topics found:", sorted(topics))
+path = pathlib.Path("collector/topics.json")
+cfg = json.loads(path.read_text(encoding="utf-8"))
+if topics:
+    cfg.update(topics)
+    path.write_text(json.dumps(cfg, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    for rid in found:
+        for key, tid in topics.items():
+            label = "실내 A·B·C 빈자리" if key == "indoor" else "실외 빈자리(알림 시간대: 화 20시, 수 17~20시, 토·일 8~19시)"
+            r = requests.post(f"{api}/sendMessage", json={"chat_id": rid, "message_thread_id": tid,
+                              "text": f"✅ 이 게시판으로 {label} 알림을 보낼게요."}, timeout=20)
+            print("topic confirm:", key, r.status_code)

@@ -56,15 +56,24 @@ def fetch_schedule(item):
 BOARD_URL = "https://jonginsir.github.io/yangjae-tennis-board/"
 
 
-def send(text):
-    """텔레그램 전송. 실패해도 수집·배포는 계속되도록 예외를 밖으로 내보내지 않는다(3번 재시도)."""
+def topic_id(topic):
+    try:
+        return json.loads((HERE / "topics.json").read_text(encoding="utf-8")).get(topic) if topic else None
+    except Exception:
+        return None
+
+
+def send(text, topic=None):
+    """텔레그램 전송. 실패해도 수집·배포는 계속되도록 예외를 밖으로 내보내지 않는다(3번 재시도).
+    topic: 'indoor' / 'outdoor' 게시판, None이면 그룹방 기본 채팅."""
+    thread = topic_id(topic)
     tok = os.environ.get("TELEGRAM_TOKEN")
     chats = chat_ids(os.environ.get("TELEGRAM_CHAT_ID", ""))
     if not (tok and chats):
         print("telegram: secrets 없음 또는 채팅 ID 숫자를 못 찾음")
         return False
     print("telegram 대상:", len(chats), "개", [f"{c[:4]}…({len(c)}자리)" for c in chats])  # 공개 로그라 일부만
-    return all([_send_one(tok, c, text) or (not c.startswith("-") and _send_one(tok, "-" + c, text, hint=True))
+    return all([_send_one(tok, c, text, thread) or (not c.startswith("-") and _send_one(tok, "-" + c, text, thread, hint=True))
                 for c in chats])
 
 
@@ -81,21 +90,25 @@ def chat_ids(raw: str):
     return list(dict.fromkeys(out))
 
 
-def _send_one(tok, chat, text, hint=False):
+def _send_one(tok, chat, text, thread=None, hint=False):
     if hint:
         print("telegram: 앞에 '-'를 붙여 다시 시도 (그룹 ID는 '-'로 시작해요)")
     for attempt in range(3):
         try:
             r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
                               json={"chat_id": chat, "text": text, "parse_mode": "HTML",
-                                    "disable_web_page_preview": True}, timeout=20)
+                                    "disable_web_page_preview": True,
+                                    **({"message_thread_id": thread} if thread else {})}, timeout=20)
             body = r.json()
             print("telegram:", r.status_code, body.get("description", "ok"))
             new_id = (body.get("parameters") or {}).get("migrate_to_chat_id")
             if new_id and str(new_id) != str(chat):
                 # 그룹이 슈퍼그룹으로 바뀌면 ID가 -100... 으로 바뀐다. 텔레그램이 알려준 새 ID로 다시 보낸다.
                 print("telegram: 슈퍼그룹 전환됨 → 새 ID로 재전송. Secrets를 새 ID로 바꾸면 이 단계가 사라져요")
-                return _send_one(tok, str(new_id), text)
+                return _send_one(tok, str(new_id), text, thread)
+            if thread and "thread" in str(body.get("description", "")).lower():
+                print("telegram: 게시판을 못 찾음 → 기본 채팅으로 보냄 (find-chat을 다시 돌리면 고쳐져요)")
+                return _send_one(tok, chat, text)
             if r.status_code < 500:
                 return r.status_code == 200
         except Exception as e:
@@ -209,21 +222,28 @@ def main():
     change_lines = changes(prev, data)
     indoor_ids = {c["id"] for c in data["courts"] if c["indoor"]}
     outdoor_ids = {c["id"] for c in data["courts"] if not c["indoor"]}
-    text = compose(opened=newly_opened_months(prev, data, indoor_ids, keep),
-                   opened_out=newly_opened_months(prev, data, outdoor_ids, keep),
-                   new_lines=lines, out_new_lines=out_lines,
-                   closed_lines=closed_lines, change_lines=change_lines,
-                   health_msg=health_message(prev, data, now), board_url=BOARD_URL, biz_url=BIZ_URL)
-    print("closed:", len(closed_lines), "changes:", change_lines)
-    if text:
-        send(text)
+    closed_all = [x for x in closed_again(prev, data) if keep(*x)]
+    common = dict(change_lines=[], health_msg=None, board_url=BOARD_URL, biz_url=BIZ_URL)
+    texts = {
+        "indoor": compose(opened=newly_opened_months(prev, data, indoor_ids, keep), new_lines=lines,
+                          closed_lines=[label(*x) for x in closed_all if x[1].isalpha()], **common),
+        "outdoor": compose(opened={}, opened_out=newly_opened_months(prev, data, outdoor_ids, keep), new_lines=[],
+                           out_new_lines=out_lines, closed_lines=[label(*x) for x in closed_all if not x[1].isalpha()], **common),
+        None: compose(opened={}, new_lines=[], closed_lines=[], change_lines=change_lines,
+                      health_msg=health_message(prev, data, now), board_url=BOARD_URL, biz_url=BIZ_URL),
+    }
+    print("closed:", len(closed_all), "changes:", change_lines)
+    for topic, text in texts.items():
+        if text:
+            send(text, topic)
     if os.environ.get("SEND_CURRENT") == "true":
         cur = [x for x in current_open(data, indoor_ids | outdoor_ids) if keep(*x)]
         ins = compose_lines([slot_link(*x) for x in cur if x[1].isalpha()])
         outs = compose_lines([slot_link(*x) for x in cur if not x[1].isalpha()])
         send("🎾 <b>지금 예약 가능한 실내 자리</b>\n" + ("\n".join(ins) if ins else "지금은 없어요")
-             + "\n\n🌳 <b>지금 예약 가능한 실외 자리 (내 시간대)</b>\n" + ("\n".join(outs) if outs else "지금은 없어요")
-             + f'\n\n<a href="{BOARD_URL}">보드 열기</a>')
+             + f'\n\n<a href="{BOARD_URL}">보드 열기</a>', "indoor")
+        send("🌳 <b>지금 예약 가능한 실외 자리 (알림 시간대)</b>\n" + ("\n".join(outs) if outs else "지금은 없어요")
+             + f'\n\n<a href="{BOARD_URL}">보드 열기</a>', "outdoor")
     if os.environ.get("TELEGRAM_TEST") == "true":
         send("📢 <b>양재 테니스장 빈자리 알림방</b>\n\n"
              "15분마다 네이버 예약을 확인해서 이 방으로 알려드려요.\n\n"

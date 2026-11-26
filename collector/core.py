@@ -201,16 +201,15 @@ def compose(*, opened, new_lines, closed_lines, change_lines, health_msg, board_
     parts = []
     opened_out = opened_out or {}
     for ym in sorted(set(opened) | set(opened_out)):
-        line = f"📅 {int(ym[1])}월 예약이 열렸어요. 실내 빈자리 {opened.get(ym, 0)}칸"
-        if ym in opened_out:
-            line += f", 실외(내 시간대) {opened_out[ym]}칸"
-        parts.append(line)
+        bits = ([f"실내 빈자리 {opened[ym]}칸"] if ym in opened else []) + \
+               ([f"실외(알림 시간대) {opened_out[ym]}칸"] if ym in opened_out else [])
+        parts.append(f"📅 {int(ym[1])}월 예약이 열렸어요. " + ", ".join(bits))
     if new_lines:
         parts += ["🎾 실내 빈자리 생김"] + new_lines[:limit]
         if len(new_lines) > limit:
             parts.append(f"외 {len(new_lines) - limit}칸 더 있어요")
     if out_new_lines:
-        parts += ["🌳 실외 빈자리 생김 (내 시간대)"] + out_new_lines[:limit]
+        parts += ["🌳 실외 빈자리 생김 (알림 시간대)"] + out_new_lines[:limit]
         if len(out_new_lines) > limit:
             parts.append(f"외 {len(out_new_lines) - limit}칸 더 있어요")
     if closed_lines:

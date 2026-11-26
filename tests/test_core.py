@@ -280,5 +280,27 @@ def test_alert_windows_indoor_all_outdoor_my_hours():
 def test_compose_separates_indoor_and_outdoor():
     t = compose(opened={("2027", "01"): 3}, opened_out={("2027", "01"): 12}, new_lines=["실내줄"],
                 out_new_lines=["실외줄"], closed_lines=[], change_lines=[], health_msg=None, board_url="B", biz_url="N")
-    assert "🎾 실내 빈자리 생김\n실내줄" in t and "🌳 실외 빈자리 생김 (내 시간대)\n실외줄" in t
-    assert "1월 예약이 열렸어요. 실내 빈자리 3칸, 실외(내 시간대) 12칸" in t
+    assert "🎾 실내 빈자리 생김\n실내줄" in t and "🌳 실외 빈자리 생김 (알림 시간대)\n실외줄" in t
+    assert "1월 예약이 열렸어요. 실내 빈자리 3칸, 실외(알림 시간대) 12칸" in t
+    t2 = compose(opened={}, opened_out={("2027", "01"): 5}, new_lines=[], closed_lines=[], change_lines=[],
+                 health_msg=None, board_url="B", biz_url="N")
+    assert "1월 예약이 열렸어요. 실외(알림 시간대) 5칸" in t2 and "실내" not in t2.split("\n")[0]
+
+
+def test_send_goes_to_topic_and_falls_back(monkeypatch):
+    import collector.run as run
+    monkeypatch.setenv("TELEGRAM_TOKEN", "t"); monkeypatch.setenv("TELEGRAM_CHAT_ID", "-1001234567890")
+    monkeypatch.setattr(run, "topic_id", lambda t: {"indoor": 11, "outdoor": 22}.get(t))
+    sent = []
+    class R:
+        def __init__(self, ok, desc=""): self.status_code = 200 if ok else 400; self.desc = desc
+        def json(self): return {} if self.status_code == 200 else {"description": self.desc}
+    def post(url, json, timeout):
+        sent.append(json.get("message_thread_id"))
+        if json.get("message_thread_id") == 22:
+            return R(False, "Bad Request: message thread not found")
+        return R(True)
+    monkeypatch.setattr(run.requests, "post", post)
+    assert run.send("x", "indoor") and sent == [11]
+    sent.clear()
+    assert run.send("x", "outdoor") and sent == [22, None]     # 게시판이 없어졌으면 기본 채팅으로라도 보냄
