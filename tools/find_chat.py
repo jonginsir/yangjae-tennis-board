@@ -1,34 +1,46 @@
-"""봇이 들어가 있는 그룹방의 ID를 찾아서 형 개인 채팅(TELEGRAM_CHAT_ID)으로 보낸다.
-ID는 공개 로그에 남기지 않는다(로그에는 개수만)."""
+"""알림을 보낼 그룹방의 '현재' ID를 찾아서 그 그룹방에 올린다.
+- Secrets 값(앞 '-' 빠짐, 슈퍼그룹 전환 전 옛 ID 등)과 봇이 받은 메시지에서 후보를 모은다.
+- getChat으로 확인하고, 슈퍼그룹으로 바뀌었으면 텔레그램이 알려주는 새 ID(-100...)를 따라간다.
+ID는 공개 로그에 남기지 않는다."""
 import os
+import sys
+
 import requests
 
-tok, me = os.environ["TELEGRAM_TOKEN"], os.environ["TELEGRAM_CHAT_ID"]
+sys.path.insert(0, os.getcwd())
+from collector.run import chat_ids  # noqa: E402
+
+tok = os.environ["TELEGRAM_TOKEN"]
 api = f"https://api.telegram.org/bot{tok}"
-r = requests.get(f"{api}/getUpdates", params={"allowed_updates": '["message","my_chat_member"]'}, timeout=20).json()
-groups = {}
-migrated = {}
-for u in r.get("result", []):
+
+cands = []
+for c in chat_ids(os.environ.get("TELEGRAM_CHAT_ID", "")):
+    cands += [c] if c.startswith("-") else [c, "-" + c]
+for u in requests.get(f"{api}/getUpdates", timeout=20).json().get("result", []):
     for key in ("message", "my_chat_member", "edited_message"):
         msg = u.get(key) or {}
-        chat = msg.get("chat")
-        if chat and chat.get("type") in ("group", "supergroup"):
-            groups[chat["id"]] = chat.get("title", "(이름 없음)")
-        if msg.get("migrate_to_chat_id"):  # 일반 그룹 → 슈퍼그룹으로 바뀌면 ID가 -100... 으로 바뀐다
-            migrated[chat["id"]] = msg["migrate_to_chat_id"]
-for old, new in migrated.items():
-    groups[new] = groups.pop(old, groups.get(new, "(이름 없음)"))
-print("getUpdates ok:", r.get("ok"), "groups found:", len(groups), r.get("description", ""))
-if groups:
-    lines = [f"{title}\n{cid}" for cid, title in groups.items()]
-    text = ("👥 봇이 들어가 있는 그룹방을 찾았어요.\n아래 숫자(마이너스 포함)를 GitHub Secrets의 TELEGRAM_CHAT_ID에 넣으면 돼요.\n\n"
-            + "\n\n".join(lines))
-else:
-    text = ("👥 아직 그룹방을 못 찾았어요.\n그룹방에 봇을 추가한 다음, 그룹방에서 /start@봇아이디 를 한 번 보내고 다시 실행해 주세요.\n"
-            "(봇이 받은 지 24시간이 지난 메시지는 안 보여요)")
-res = requests.post(f"{api}/sendMessage", json={"chat_id": me, "text": text}, timeout=20)
-print("send to secret chat:", res.status_code)
-if res.status_code != 200:  # Secrets 값이 틀렸으면 그룹방에 직접 올린다
-    for cid in groups:
-        rr = requests.post(f"{api}/sendMessage", json={"chat_id": cid, "text": text}, timeout=20)
-        print("send to group:", rr.status_code)
+        chat = msg.get("chat") or {}
+        if chat.get("type") in ("group", "supergroup"):
+            cands.append(str(chat["id"]))
+        if msg.get("migrate_to_chat_id"):
+            cands.append(str(msg["migrate_to_chat_id"]))
+
+
+def resolve(cid, depth=0):
+    r = requests.get(f"{api}/getChat", params={"chat_id": cid}, timeout=20).json()
+    if r.get("ok"):
+        return str(r["result"]["id"]), r["result"].get("title", "")
+    new = (r.get("parameters") or {}).get("migrate_to_chat_id")
+    return resolve(str(new), depth + 1) if new and depth < 2 else (None, None)
+
+
+found = {}
+for c in dict.fromkeys(cands):
+    rid, title = resolve(c)
+    if rid and rid.startswith("-"):
+        found[rid] = title
+print("candidates:", len(cands), "groups resolved:", len(found))
+for rid, title in found.items():
+    text = (f"🔧 이 그룹방의 현재 ID예요. (그룹명: {title})\n\n{rid}\n\n"
+            "GitHub Secrets의 TELEGRAM_CHAT_ID를 위 숫자로 바꿔주세요. 맨 앞 '-'까지 꼭 같이 복사해요.")
+    print("send:", requests.post(f"{api}/sendMessage", json={"chat_id": rid, "text": text}, timeout=20).status_code)
