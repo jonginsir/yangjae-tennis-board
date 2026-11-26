@@ -8,6 +8,10 @@ on:
         description: 텔레그램 테스트 메시지 보내기
         type: boolean
         default: false
+      send_current:
+        description: 지금 실내 빈자리 목록 보내기
+        type: boolean
+        default: false
   push:
     branches: [main]
 permissions:
@@ -35,6 +39,7 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_TEST: ${{ inputs.test_alert }}
+          SEND_CURRENT: ${{ inputs.send_current }}
         run: |
           mkdir -p site && cp -r web/. site/
           python -m collector.run

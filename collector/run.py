@@ -84,7 +84,13 @@ def _send_one(tok, chat, text, hint=False):
             r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage",
                               json={"chat_id": chat, "text": text, "parse_mode": "HTML",
                                     "disable_web_page_preview": True}, timeout=20)
-            print("telegram:", r.status_code, r.json().get("description", "ok"))
+            body = r.json()
+            print("telegram:", r.status_code, body.get("description", "ok"))
+            new_id = (body.get("parameters") or {}).get("migrate_to_chat_id")
+            if new_id and str(new_id) != str(chat):
+                # 그룹이 슈퍼그룹으로 바뀌면 ID가 -100... 으로 바뀐다. 텔레그램이 알려준 새 ID로 다시 보낸다.
+                print("telegram: 슈퍼그룹 전환됨 → 새 ID로 재전송. Secrets를 새 ID로 바꾸면 이 단계가 사라져요")
+                return _send_one(tok, str(new_id), text)
             if r.status_code < 500:
                 return r.status_code == 200
         except Exception as e:
@@ -94,6 +100,16 @@ def _send_one(tok, chat, text, hint=False):
 
 
 
+
+
+def current_open(data, courts):
+    return sorted((d, c, int(h)) for d, cs in data["dates"].items() for c, cell in cs.items()
+                  if c in courts for h, st in (cell.get("slots") or {}).items() if st == "open")
+
+
+def compose_lines(lines):
+    from .core import _line
+    return [_line(x) for x in lines[:25]]
 
 
 def debounce_listing(meta, prev):
@@ -185,6 +201,10 @@ def main():
     print("closed:", closed_lines, "changes:", change_lines)
     if text:
         send(text)
+    if os.environ.get("SEND_CURRENT") == "true":
+        now_open = [slot_link(d, c, h) for d, c, h in current_open(data, alert_courts)]
+        send("🎾 <b>지금 예약 가능한 실내 자리</b>\n" + ("\n".join(compose_lines(now_open)) if now_open else "지금은 없어요")
+             + f'\n\n<a href="{BOARD_URL}">보드 열기</a>')
     if os.environ.get("TELEGRAM_TEST") == "true":
         send("📢 <b>양재 테니스장 빈자리 알림방</b>\n\n"
              "15분마다 네이버 예약을 확인해서 이 방으로 알려드려요.\n\n"

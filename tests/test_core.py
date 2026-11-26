@@ -242,3 +242,20 @@ def test_group_id_missing_minus_is_retried(monkeypatch):
         sent.append(json["chat_id"]); return R(json["chat_id"].startswith("-"))
     monkeypatch.setattr(run.requests, "post", post)
     assert run.send("x") is True and sent == ["5393123456", "-5393123456"]
+
+
+def test_supergroup_migration_resends_to_new_id(monkeypatch):
+    """11/26 10:00: 그룹이 슈퍼그룹으로 바뀌어 빈자리 알림이 실패했다. 텔레그램이 준 새 ID로 다시 보내야 한다."""
+    import collector.run as run
+    monkeypatch.setenv("TELEGRAM_TOKEN", "t"); monkeypatch.setenv("TELEGRAM_CHAT_ID", "-5393123456")
+    sent = []
+    class R:
+        def __init__(self, cid):
+            self.ok = cid == "-1009999999999"; self.status_code = 200 if self.ok else 400
+        def json(self):
+            return {} if self.ok else {"description": "group chat was upgraded to a supergroup chat",
+                                       "parameters": {"migrate_to_chat_id": -1009999999999}}
+    def post(url, json, timeout):
+        sent.append(json["chat_id"]); return R(json["chat_id"])
+    monkeypatch.setattr(run.requests, "post", post)
+    assert run.send("x") is True and sent == ["-5393123456", "-1009999999999"]
