@@ -72,8 +72,13 @@ def chat_ids(raw: str):
     """Secrets 값에서 채팅 ID 숫자만 뽑는다. 메시지 전체를 붙여넣었거나 여러 개(쉼표·줄바꿈)여도 된다.
     유니코드 마이너스(−, –)도 '-'로 본다."""
     import re
-    raw = (raw or "").replace("\u2212", "-").replace("\u2013", "-")
-    return list(dict.fromkeys(re.findall(r"-?\d{5,}", raw)))
+    raw = re.sub("[\u2010-\u2015\u2212\ufe58\ufe63\uff0d]", "-", raw or "")  # 여러 모양의 대시를 '-'로
+    out = []
+    for c in re.findall(r"-?\d{5,}", raw):
+        if not c.startswith("-") and len(c) == 13 and c.startswith("100"):
+            c = "-" + c  # 슈퍼그룹 ID(-100 + 10자리)에서 '-'만 빠진 경우
+        out.append(c)
+    return list(dict.fromkeys(out))
 
 
 def _send_one(tok, chat, text, hint=False):

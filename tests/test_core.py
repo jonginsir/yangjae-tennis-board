@@ -228,6 +228,8 @@ def test_chat_id_extracted_from_pasted_text():
     assert chat_ids(" −5012345678 ") == ["-5012345678"]          # 유니코드 마이너스
     assert chat_ids("123456789, -100987654321") == ["123456789", "-100987654321"]
     assert chat_ids("") == []
+    assert chat_ids("1005393123456") == ["-1005393123456"]        # 슈퍼그룹 ID에서 '-'만 빠짐
+    assert chat_ids("\uff0d1005393123456") == ["-1005393123456"]  # 전각 대시
 
 
 def test_group_id_missing_minus_is_retried(monkeypatch):
