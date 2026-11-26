@@ -76,7 +76,16 @@ def new_openings(prev: dict | None, cur: dict):
     return sorted(out)
 
 
-def newly_opened_months(prev: dict | None, cur: dict, courts=None):
+def wants(date: str, court: str, hour: int, rules: dict) -> bool:
+    """이 칸을 알릴지. 실내(A·B·C)는 rules['indoor'], 실외(숫자 코트)는 요일·시간 창 목록."""
+    rule = rules.get("indoor" if court.isalpha() else "outdoor", [])
+    if rule == "all":
+        return True
+    wd = datetime.strptime(date, "%Y-%m-%d").weekday()
+    return any(w["day"] == wd and w["from"] <= hour < w["to"] for w in (rule or []))
+
+
+def newly_opened_months(prev: dict | None, cur: dict, courts=None, keep=None):
     """'오픈 전' 칸이 이번에 처음 열린 달 -> {('2027','01'): 빈자리 수}. 칸별 알림 대신 한 줄 요약용."""
     if not prev:
         return {}
@@ -87,6 +96,8 @@ def newly_opened_months(prev: dict | None, cur: dict, courts=None):
                 continue
             pslots = (prev.get("dates", {}).get(date, {}).get(court) or {}).get("slots") or {}
             for hour, st in (cell.get("slots") or {}).items():
+                if keep and not keep(date, court, int(hour)):
+                    continue
                 if pslots.get(hour) == NOTYET and st != NOTYET:
                     key = (date[:4], date[5:7])
                     out.setdefault(key, 0)
@@ -179,19 +190,29 @@ def _line(x):
     return _html.escape(str(x))
 
 
-def compose(*, opened, new_lines, closed_lines, change_lines, health_msg, board_url, biz_url, limit=25):
+def compose(*, opened, new_lines, closed_lines, change_lines, health_msg, board_url, biz_url, limit=25,
+            opened_out=None, out_new_lines=()):
     """한 번의 수집에서 보낼 텔레그램 메시지 한 통 (HTML 모드, 4096자 이내)."""
     new_lines = [_line(x) for x in new_lines]
+    out_new_lines = [_line(x) for x in out_new_lines]
     closed_lines = [_line(x) for x in closed_lines]
     change_lines = [_line(x) for x in change_lines]
     health_msg = _html.escape(health_msg) if health_msg else None
     parts = []
-    for (y, m), n in sorted(opened.items()):
-        parts.append(f"📅 {int(m)}월 예약이 열렸어요. 실내 빈자리 {n}칸")
+    opened_out = opened_out or {}
+    for ym in sorted(set(opened) | set(opened_out)):
+        line = f"📅 {int(ym[1])}월 예약이 열렸어요. 실내 빈자리 {opened.get(ym, 0)}칸"
+        if ym in opened_out:
+            line += f", 실외(내 시간대) {opened_out[ym]}칸"
+        parts.append(line)
     if new_lines:
-        parts += ["🎾 양재 실내 빈자리 생김"] + new_lines[:limit]
+        parts += ["🎾 실내 빈자리 생김"] + new_lines[:limit]
         if len(new_lines) > limit:
             parts.append(f"외 {len(new_lines) - limit}칸 더 있어요")
+    if out_new_lines:
+        parts += ["🌳 실외 빈자리 생김 (내 시간대)"] + out_new_lines[:limit]
+        if len(out_new_lines) > limit:
+            parts.append(f"외 {len(out_new_lines) - limit}칸 더 있어요")
     if closed_lines:
         parts += ["🔒 다시 마감됐어요"] + closed_lines[:15]
         if len(closed_lines) > 15:

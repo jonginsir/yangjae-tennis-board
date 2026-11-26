@@ -11,7 +11,7 @@ from datetime import datetime
 import requests
 
 from .board import BIZ_URL, build, merge_items, relevant_items
-from .core import (KST, alert_text, changes, closed_again, compose, health, new_openings,
+from .core import (KST, alert_text, changes, closed_again, compose, health, new_openings, wants,
                    newly_opened_months, notice_from_html, parse_open_notice)
 
 GQL = "https://m.booking.naver.com/graphql"
@@ -189,31 +189,46 @@ def main():
     data["known"] = sorted(set((prev or {}).get("known") or []) | {m["name"] for m in meta} | set(data["listed"]))
     data["notice"] = notice
     data["health"] = health(data)
-    alert_courts = set(os.environ.get("ALERT_COURTS", "A,B,C").split(","))
+    rules = json.loads((HERE / "alert_rules.json").read_text(encoding="utf-8"))
+    keep = lambda d, c, h: wants(d, c, h, rules)
     week = "월화수목금토일"
+
+    def label(d, c, h):
+        court = f"{c}코트" if c.isalpha() else f"{c}번 코트"
+        return f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {court} {h:02d}시"
+
     def slot_link(d, c, h):
         iid = data["dates"][d][c].get("itemId")
-        text = f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
-        return (text, f"{BIZ_URL}/items/{iid}?startDate={d}") if iid else text
-    lines = [slot_link(d, c, h) for d, c, h in new_openings(prev, data) if c in alert_courts]
-    print("new openings:", lines)
-    fmt = lambda d, c, h: f"{d[5:7]}/{d[8:]}({week[datetime.strptime(d, '%Y-%m-%d').weekday()]}) {c}코트 {h:02d}시"
-    closed_lines = [fmt(*x) for x in closed_again(prev, data, alert_courts)]  # 마감된 칸은 링크 불필요
+        return (label(d, c, h), f"{BIZ_URL}/items/{iid}?startDate={d}") if iid else label(d, c, h)
+
+    opened_all = [x for x in new_openings(prev, data) if keep(*x)]
+    lines = [slot_link(*x) for x in opened_all if x[1].isalpha()]
+    out_lines = [slot_link(*x) for x in opened_all if not x[1].isalpha()]
+    print("new openings:", len(lines), "indoor,", len(out_lines), "outdoor(in window)")
+    closed_lines = [label(*x) for x in closed_again(prev, data) if keep(*x)]  # 마감된 칸은 링크 불필요
     change_lines = changes(prev, data)
-    text = compose(opened=newly_opened_months(prev, data, alert_courts), new_lines=lines,
+    indoor_ids = {c["id"] for c in data["courts"] if c["indoor"]}
+    outdoor_ids = {c["id"] for c in data["courts"] if not c["indoor"]}
+    text = compose(opened=newly_opened_months(prev, data, indoor_ids, keep),
+                   opened_out=newly_opened_months(prev, data, outdoor_ids, keep),
+                   new_lines=lines, out_new_lines=out_lines,
                    closed_lines=closed_lines, change_lines=change_lines,
                    health_msg=health_message(prev, data, now), board_url=BOARD_URL, biz_url=BIZ_URL)
-    print("closed:", closed_lines, "changes:", change_lines)
+    print("closed:", len(closed_lines), "changes:", change_lines)
     if text:
         send(text)
     if os.environ.get("SEND_CURRENT") == "true":
-        now_open = [slot_link(d, c, h) for d, c, h in current_open(data, alert_courts)]
-        send("🎾 <b>지금 예약 가능한 실내 자리</b>\n" + ("\n".join(compose_lines(now_open)) if now_open else "지금은 없어요")
+        cur = [x for x in current_open(data, indoor_ids | outdoor_ids) if keep(*x)]
+        ins = compose_lines([slot_link(*x) for x in cur if x[1].isalpha()])
+        outs = compose_lines([slot_link(*x) for x in cur if not x[1].isalpha()])
+        send("🎾 <b>지금 예약 가능한 실내 자리</b>\n" + ("\n".join(ins) if ins else "지금은 없어요")
+             + "\n\n🌳 <b>지금 예약 가능한 실외 자리 (내 시간대)</b>\n" + ("\n".join(outs) if outs else "지금은 없어요")
              + f'\n\n<a href="{BOARD_URL}">보드 열기</a>')
     if os.environ.get("TELEGRAM_TEST") == "true":
         send("📢 <b>양재 테니스장 빈자리 알림방</b>\n\n"
              "15분마다 네이버 예약을 확인해서 이 방으로 알려드려요.\n\n"
              "🎾 실내 A·B·C에 새 빈자리가 생기면 → 줄을 누르면 그 날짜 예약 화면이 열려요\n"
+             "🌳 실외는 화 20시, 수 17~20시, 토·일 8~19시에 시작하는 칸만\n"
              "🔒 알린 빈자리가 다시 차면\n"
              "📅 다음 달 예약이 열리면 (공지 기준 시각)\n"
              "📢 네이버 공지나 상품 구성이 바뀌면\n"

@@ -261,3 +261,24 @@ def test_supergroup_migration_resends_to_new_id(monkeypatch):
         sent.append(json["chat_id"]); return R(json["chat_id"])
     monkeypatch.setattr(run.requests, "post", post)
     assert run.send("x") is True and sent == ["-5393123456", "-1009999999999"]
+
+
+RULES = json.loads((pathlib.Path(__file__).parent.parent / "collector" / "alert_rules.json").read_text(encoding="utf-8"))
+
+
+def test_alert_windows_indoor_all_outdoor_my_hours():
+    from collector.core import wants
+    assert wants("2026-12-01", "A", 6, RULES)            # 실내는 언제나
+    assert wants("2026-12-01", "3", 20, RULES)           # 화 20시
+    assert not wants("2026-12-01", "3", 21, RULES)       # 화 21시는 제외(끝 시각 미포함)
+    assert wants("2026-12-02", "5", 17, RULES) and wants("2026-12-02", "5", 20, RULES)   # 수 17~20
+    assert not wants("2026-12-02", "5", 16, RULES)
+    assert wants("2026-12-05", "1", 8, RULES) and wants("2026-12-06", "8", 19, RULES)    # 토·일 8~19
+    assert not wants("2026-12-05", "1", 20, RULES) and not wants("2026-12-03", "1", 19, RULES)  # 토 20시, 목요일
+
+
+def test_compose_separates_indoor_and_outdoor():
+    t = compose(opened={("2027", "01"): 3}, opened_out={("2027", "01"): 12}, new_lines=["실내줄"],
+                out_new_lines=["실외줄"], closed_lines=[], change_lines=[], health_msg=None, board_url="B", biz_url="N")
+    assert "🎾 실내 빈자리 생김\n실내줄" in t and "🌳 실외 빈자리 생김 (내 시간대)\n실외줄" in t
+    assert "1월 예약이 열렸어요. 실내 빈자리 3칸, 실외(내 시간대) 12칸" in t
